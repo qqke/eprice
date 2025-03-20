@@ -162,7 +162,7 @@ jobs:
       name: Upload binaries to release
       if: ${{ github.event_name == 'push' }}
       with:
-        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        repo_token: ${{ secrets.GH_PAT }}
         file: eprice-${{ matrix.TARGET }}${{ matrix.EXTENSION }}
         asset_name: eprice-${{ matrix.TARGET }}${{ matrix.EXTENSION }}
         tag: ${{ github.ref }}
