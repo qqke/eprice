@@ -1,29 +1,32 @@
+use crate::map::{MapMarker, MapState};
+use egui::Color32;
+
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[derive(serde::Deserialize, serde::Serialize)]
 #[serde(default)] // if we add new fields, give them default values when deserializing old state
 pub struct TemplateApp {
-    // 当前选中的标签页
-    current_tab: Tab,
-    // 门店管理相关状态
-    store_search_text: String,
-    store_filter_distance: f32,
-    store_filter_rating: f32,
     stores: Vec<Store>,
-    selected_store: Option<usize>,
+    map_state: MapState,
+    map_drag_start: Option<egui::Pos2>,
+    search_text: String,
+    min_rating: f64,
+    max_distance: f64,
+    current_tab: Tab,
+    selected_store: Option<Store>,
 }
 
-#[derive(serde::Deserialize, serde::Serialize, Clone)]
-struct Store {
-    id: usize,
-    name: String,
-    address: String,
-    latitude: f64,
-    longitude: f64,
-    rating: f32,
-    distance: f32,
-    opening_hours: String,
-    phone: String,
-    tags: Vec<String>,
+#[derive(serde::Deserialize, serde::Serialize, Clone, PartialEq)]
+pub struct Store {
+    pub id: String,
+    pub name: String,
+    pub address: String,
+    pub latitude: f64,
+    pub longitude: f64,
+    pub rating: f64,
+    pub distance: f64,
+    pub opening_hours: String,
+    pub phone: String,
+    pub tags: Vec<String>,
 }
 
 #[derive(serde::Deserialize, serde::Serialize, PartialEq)]
@@ -32,43 +35,113 @@ enum Tab {
     Products,  // 商品比价
     Trends,    // 价格趋势
     Community, // 用户互动
+    Settings,
+}
+
+impl Default for Tab {
+    fn default() -> Self {
+        Self::Stores
+    }
 }
 
 impl Default for TemplateApp {
     fn default() -> Self {
-        Self {
-            current_tab: Tab::Stores,
-            store_search_text: String::new(),
-            store_filter_distance: 5.0,
-            store_filter_rating: 3.0,
+        let mut app = Self {
             stores: vec![
                 Store {
-                    id: 1,
-                    name: "示例商店1".to_string(),
-                    address: "东京都新宿区".to_string(),
-                    latitude: 35.6895,
-                    longitude: 139.6917,
+                    id: "1".to_string(),
+                    name: "全家便利店 - 东京站店".to_string(),
+                    address: "东京都千代田区丸の内1-9-1".to_string(),
+                    latitude: 35.6812,
+                    longitude: 139.7671,
                     rating: 4.5,
-                    distance: 0.5,
-                    opening_hours: "10:00-22:00".to_string(),
+                    distance: 0.2,
+                    opening_hours: "24小时营业".to_string(),
                     phone: "03-1234-5678".to_string(),
                     tags: vec!["便利店".to_string(), "24小时".to_string()],
                 },
                 Store {
-                    id: 2,
-                    name: "示例商店2".to_string(),
-                    address: "东京都涩谷区".to_string(),
+                    id: "2".to_string(),
+                    name: "松本清 - 新宿店".to_string(),
+                    address: "东京都新宿区新宿3-1-1".to_string(),
+                    latitude: 35.6895,
+                    longitude: 139.6917,
+                    rating: 4.2,
+                    distance: 0.5,
+                    opening_hours: "10:00-22:00".to_string(),
+                    phone: "03-2345-6789".to_string(),
+                    tags: vec![
+                        "药妆店".to_string(),
+                        "化妆品".to_string(),
+                        "免税".to_string(),
+                    ],
+                },
+                Store {
+                    id: "3".to_string(),
+                    name: "唐吉诃德 - 涩谷店".to_string(),
+                    address: "东京都涩谷区道玄坂2-25-5".to_string(),
                     latitude: 35.6580,
-                    longitude: 139.7016,
+                    longitude: 139.6994,
                     rating: 4.0,
                     distance: 1.2,
-                    opening_hours: "09:00-21:00".to_string(),
-                    phone: "03-8765-4321".to_string(),
-                    tags: vec!["超市".to_string(), "生鲜".to_string()],
+                    opening_hours: "24小时营业".to_string(),
+                    phone: "03-3456-7890".to_string(),
+                    tags: vec![
+                        "综合商店".to_string(),
+                        "免税".to_string(),
+                        "24小时".to_string(),
+                    ],
+                },
+                Store {
+                    id: "4".to_string(),
+                    name: "无印良品 - 银座店".to_string(),
+                    address: "东京都中央区银座3-3-5".to_string(),
+                    latitude: 35.6721,
+                    longitude: 139.7636,
+                    rating: 4.3,
+                    distance: 0.8,
+                    opening_hours: "11:00-20:00".to_string(),
+                    phone: "03-4567-8901".to_string(),
+                    tags: vec![
+                        "生活用品".to_string(),
+                        "服装".to_string(),
+                        "家居".to_string(),
+                    ],
+                },
+                Store {
+                    id: "5".to_string(),
+                    name: "优衣库 - 原宿店".to_string(),
+                    address: "东京都涩谷区神宫前1-14-30".to_string(),
+                    latitude: 35.6716,
+                    longitude: 139.7031,
+                    rating: 4.4,
+                    distance: 1.5,
+                    opening_hours: "10:00-21:00".to_string(),
+                    phone: "03-5678-9012".to_string(),
+                    tags: vec!["服装".to_string(), "时尚".to_string()],
                 },
             ],
+            map_state: MapState::default(),
+            map_drag_start: None,
+            search_text: String::new(),
+            min_rating: 0.0,
+            max_distance: f64::MAX,
+            current_tab: Tab::default(),
             selected_store: None,
+        };
+
+        // 添加商店标记
+        for store in &app.stores {
+            app.map_state.add_marker(MapMarker {
+                id: store.id.clone(),
+                name: store.name.clone(),
+                lat: store.latitude,
+                lng: store.longitude,
+                is_selected: false,
+            });
         }
+
+        app
     }
 }
 
@@ -92,26 +165,23 @@ impl TemplateApp {
 
         cc.egui_ctx.set_fonts(fonts);
 
-        // Load previous app state (if any).
+        // 加载上一次的应用状态（如果有）
         if let Some(storage) = cc.storage {
             return eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default();
         }
 
-        Default::default()
+        Self::default()
     }
 
     fn render_stores_tab(&mut self, ui: &mut egui::Ui) {
         // 搜索和筛选区域
         ui.horizontal(|ui| {
             ui.label("搜索：");
-            ui.text_edit_singleline(&mut self.store_search_text);
+            ui.text_edit_singleline(&mut self.search_text);
             ui.label("距离(km)：");
-            ui.add(egui::Slider::new(
-                &mut self.store_filter_distance,
-                0.0..=10.0,
-            ));
+            ui.add(egui::Slider::new(&mut self.max_distance, 0.0..=10.0));
             ui.label("评分：");
-            ui.add(egui::Slider::new(&mut self.store_filter_rating, 0.0..=5.0));
+            ui.add(egui::Slider::new(&mut self.min_rating, 0.0..=5.0));
         });
 
         ui.separator();
@@ -122,16 +192,45 @@ impl TemplateApp {
             ui.vertical(|ui| {
                 ui.heading("附近商店");
                 egui::ScrollArea::vertical().show(ui, |ui| {
-                    for (index, store) in self.stores.iter().enumerate() {
-                        let is_selected = self.selected_store == Some(index);
+                    // 过滤商店列表
+                    let filtered_stores: Vec<_> = self
+                        .stores
+                        .iter()
+                        .filter(|store| {
+                            let matches_search = self.search_text.is_empty()
+                                || store
+                                    .name
+                                    .to_lowercase()
+                                    .contains(&self.search_text.to_lowercase())
+                                || store
+                                    .address
+                                    .to_lowercase()
+                                    .contains(&self.search_text.to_lowercase())
+                                || store.tags.iter().any(|tag| {
+                                    tag.to_lowercase()
+                                        .contains(&self.search_text.to_lowercase())
+                                });
+
+                            let matches_distance = store.distance <= self.max_distance;
+                            let matches_rating = store.rating >= self.min_rating as f64;
+
+                            matches_search && matches_distance && matches_rating
+                        })
+                        .collect();
+
+                    for store in filtered_stores.iter() {
+                        let is_selected = self.selected_store.as_ref() == Some(store);
                         if ui
                             .selectable_label(
                                 is_selected,
-                                format!("{} - {}", store.name, store.address),
+                                format!(
+                                    "{} - {:.1}km - {:.1}分",
+                                    store.name, store.distance, store.rating
+                                ),
                             )
                             .clicked()
                         {
-                            self.selected_store = Some(index);
+                            self.selected_store = Some((*store).clone());
                         }
                     }
                 });
@@ -141,31 +240,61 @@ impl TemplateApp {
 
             // 右侧地图和商店详情
             ui.vertical(|ui| {
-                // 地图区域（占位）
+                // 地图区域
                 let size = egui::vec2(400.0, 300.0);
-                let (rect, _) = ui.allocate_exact_size(size, egui::Sense::hover());
-                ui.painter()
-                    .rect_filled(rect, 0.0, egui::Color32::from_rgb(200, 200, 200));
-                ui.label("地图显示区域");
+                let (rect, response) = ui.allocate_exact_size(size, egui::Sense::drag());
+
+                // 处理地图交互
+                if response.drag_started() {
+                    self.map_drag_start = Some(response.interact_pointer_pos().unwrap());
+                }
+
+                if let Some(start_pos) = self.map_drag_start {
+                    if response.dragged() {
+                        if let Some(current_pos) = response.interact_pointer_pos() {
+                            let delta = current_pos - start_pos;
+                            self.map_state.handle_drag(delta);
+                            self.map_drag_start = Some(current_pos);
+                        }
+                    } else if response.drag_stopped() {
+                        self.map_drag_start = None;
+                    }
+                }
+
+                // 处理鼠标滚轮缩放
+                if response.hovered() {
+                    if let Some(hover_pos) = response.hover_pos() {
+                        if let Some(scroll_delta) = response
+                            .interact_pointer_pos()
+                            .map(|pos| pos.y - hover_pos.y)
+                        {
+                            self.map_state.handle_zoom(scroll_delta);
+                        }
+                    }
+                }
+
+                // 渲染地图
+                self.map_state.render(ui, rect);
 
                 // 商店详情
-                if let Some(selected_index) = self.selected_store {
-                    if let Some(store) = self.stores.get(selected_index) {
-                        ui.separator();
-                        ui.heading(&store.name);
-                        ui.label(format!("地址：{}", store.address));
-                        ui.label(format!("营业时间：{}", store.opening_hours));
-                        ui.label(format!("电话：{}", store.phone));
-                        ui.label(format!("评分：{:.1}", store.rating));
-                        ui.label(format!("距离：{:.1}km", store.distance));
+                if let Some(selected_store) = self.selected_store.as_ref() {
+                    ui.separator();
+                    ui.heading(&selected_store.name);
+                    ui.label(format!("地址：{}", selected_store.address));
+                    ui.label(format!("营业时间：{}", selected_store.opening_hours));
+                    ui.label(format!("电话：{}", selected_store.phone));
+                    ui.label(format!("评分：{:.1}", selected_store.rating));
+                    ui.label(format!("距离：{:.1}km", selected_store.distance));
 
-                        ui.label("标签：");
-                        ui.horizontal(|ui| {
-                            for tag in &store.tags {
-                                ui.label(tag);
-                            }
-                        });
-                    }
+                    ui.label("标签：");
+                    ui.horizontal(|ui| {
+                        for tag in &selected_store.tags {
+                            ui.label(tag);
+                        }
+                    });
+
+                    // 更新地图选中状态
+                    self.map_state.select_marker(&selected_store.id);
                 }
             });
         });
@@ -242,6 +371,11 @@ impl eframe::App for TemplateApp {
                     ui.heading("用户互动");
                     ui.label("用户评价和分享");
                     // TODO: 添加用户互动功能
+                }
+                Tab::Settings => {
+                    ui.heading("设置");
+                    ui.label("在这里可以设置应用的配置");
+                    // TODO: 添加设置功能
                 }
             }
         });
