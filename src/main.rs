@@ -18,9 +18,9 @@ fn main() -> eframe::Result {
         ..Default::default()
     };
     eframe::run_native(
-        "eframe_price",
+        "eprice",
         native_options,
-        Box::new(|cc| Ok(Box::new(eframe_price::TemplateApp::new(cc)))),
+        Box::new(|cc| Ok(Box::new(eprice::TemplateApp::new(cc)))),
     )
 }
 
@@ -50,7 +50,7 @@ fn main() {
             .start(
                 canvas,
                 web_options,
-                Box::new(|cc| Ok(Box::new(eframe_price::TemplateApp::new(cc)))),
+                Box::new(|cc| Ok(Box::new(eprice::TemplateApp::new(cc)))),
             )
             .await;
 
