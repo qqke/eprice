@@ -1,87 +1,132 @@
-# eframe template
+# 本地比价应用功能概述
+本地比价应用针对线下实体店，帮助用户快速比较不同商店的商品价格，支持小票扫描自动录入价格信息。
+目前只是针对日本
+## 核心功能
+### 1. 门店管理
+- 展示附近商店，支持地图显示与筛选。
+- 商店详情页，包含地址、营业时间、联系方式等信息。
+### 2. 商品比价
+- 支持搜索商品，查看不同商店的价格对比。
+- 商品详情页展示各个门店的售价与库存情况。
+- 允许用户上传价格，更新比价信息（社区驱动）。
+### 3. 价格趋势分析
+- 记录商品在不同商店的历史价格变化。
+- 提供价格波动趋势分析，帮助用户选择购买时机。
+### 4. 用户互动
+- 价格上传与审核：用户提交价格，其他用户可点赞或举报。
+- 价格提醒：设定目标价格，降价时通知用户。
+- 评价系统：用户可对商店或商品进行评价与分享购物体验。
+### 5. 智能搜索 & 扫码查询
+- 条形码/二维码扫描，快速查找商品比价信息。
+- 关键词搜索支持模糊匹配，提高搜索效率。
+### 6. 小票扫描自动录入
+- **OCR 识别**：拍摄小票，自动提取商品名称、价格、商店信息。
+- **数据自动匹配**：解析信息并匹配数据库中的商品，减少手动输入。
+- **价格自动更新**：识别后自动更新该商店的商品价格。
+- **用户审核**：用户可调整识别结果，提高数据准确性。
+- **奖励机制（可选）**：贡献小票数据的用户可获得积分或奖励。
+### 7. 本地化支持
+- **离线缓存**：即使没有网络，也能查看加载过的价格数据。
+- **货币与单位转换**：支持不同地区的货币和计量单位。
+### 8. 用户管理
+- 登录注册
 
-[![dependency status](https://deps.rs/repo/github/emilk/eframe_template/status.svg)](https://deps.rs/repo/github/emilk/eframe_template)
-[![Build Status](https://github.com/emilk/eframe_template/workflows/CI/badge.svg)](https://github.com/emilk/eframe_template/actions?workflow=CI)
+功能	技术栈
+GUI 框架	eGUI + eframe
+Web 端支持	eframe + wasm-bindgen
+状态管理	Arc<Mutex<T>> / egui::Context
+数据库	SQLite 
+OCR 识别	leptess（本地） /
+地图	OpenStreetMap / Google Maps（通过 WebView）
 
-This is a template repo for [eframe](https://github.com/emilk/egui/tree/master/crates/eframe), a framework for writing apps using [egui](https://github.com/emilk/egui/).
+## 实现计划
 
-The goal is for this to be the simplest way to get started writing a GUI app in Rust.
+### 第一阶段：基础框架搭建
+1. 项目初始化
+   - 创建 Rust 项目结构
+   - 配置 eGUI 和 eframe 环境
+   - 设置 SQLite 数据库
+   - 配置 wasm-bindgen 支持
 
-You can compile your app natively or for the web, and share it using Github Pages.
+2. 用户系统实现
+   - 设计用户数据模型
+   - 实现用户注册/登录界面
+   - 添加用户认证中间件
+   - 实现用户会话管理
 
-## Getting started
+### 第二阶段：核心功能开发
+1. 门店管理模块
+   - 实现门店数据模型
+   - 开发门店列表界面
+   - 集成 OpenStreetMap 显示
+   - 添加门店搜索和筛选功能
 
-Start by clicking "Use this template" at https://github.com/emilk/eframe_template/ or follow [these instructions](https://docs.github.com/en/free-pro-team@latest/github/creating-cloning-and-archiving-repositories/creating-a-repository-from-a-template).
+2. 商品管理模块
+   - 设计商品数据模型
+   - 实现商品搜索功能
+   - 开发商品详情页面
+   - 添加商品价格历史记录
 
-Change the name of the crate: Choose a good name for your project, and change the name to it in:
-* `Cargo.toml`
-    * Change the `package.name` from `eframe_template` to `your_crate`.
-    * Change the `package.authors`
-* `main.rs`
-    * Change `eframe_template::TemplateApp` to `your_crate::TemplateApp`
-* `index.html`
-    * Change the `<title>eframe template</title>` to `<title>your_crate</title>`. optional.
-* `assets/sw.js`
-  * Change the `'./eframe_template.js'` to `./your_crate.js` (in `filesToCache` array)
-  * Change the `'./eframe_template_bg.wasm'` to `./your_crate_bg.wasm` (in `filesToCache` array)
+3. 比价功能实现
+   - 开发价格对比界面
+   - 实现价格更新机制
+   - 添加价格趋势图表
+   - 集成价格提醒功能
 
-Alternatively, you can run `fill_template.sh` which will ask for the needed names and email and perform the above patches for you. This is particularly useful if you clone this repository outside GitHub and hence cannot make use of its
-templating function.
+### 第三阶段：高级功能开发
+1. OCR 小票识别
+   - 集成 leptess OCR 引擎
+   - 开发小票扫描界面
+   - 实现数据提取算法
+   - 添加手动修正功能
 
-### Learning about egui
+2. 社区功能
+   - 实现用户评价系统
+   - 添加价格举报功能
+   - 开发积分奖励机制
+   - 实现数据审核流程
 
-`src/app.rs` contains a simple example app. This is just to give some inspiration - most of it can be removed if you like.
+### 第四阶段：优化与完善
+1. 性能优化
+   - 实现离线数据缓存
+   - 优化数据库查询
+   - 添加数据同步机制
+   - 优化图片加载
 
-The official egui docs are at <https://docs.rs/egui>. If you prefer watching a video introduction, check out <https://www.youtube.com/watch?v=NtUkr_z7l84>. For inspiration, check out the [the egui web demo](https://emilk.github.io/egui/index.html) and follow the links in it to its source code.
+2. 用户体验提升
+   - 添加加载动画
+   - 优化错误提示
+   - 完善用户引导
+   - 添加操作反馈
 
-### Testing locally
+3. 测试与部署
+   - 编写单元测试
+   - 进行集成测试
+   - 准备部署文档
+   - 配置 CI/CD 流程
 
-Make sure you are using the latest version of stable rust by running `rustup update`.
+### 技术栈详细说明
+- **GUI 框架**：eGUI + eframe
+  - 使用 eGUI 构建原生界面
+  - 通过 eframe 实现跨平台支持
+  - 集成 wasm-bindgen 支持 Web 端
 
-`cargo run --release`
+- **数据存储**：SQLite
+  - 使用 SQLx 进行数据库操作
+  - 实现数据迁移机制
+  - 配置数据库连接池
 
-On Linux you need to first run:
+- **OCR 识别**：leptess
+  - 本地 OCR 处理
+  - 支持多种语言
+  - 优化识别准确率
 
-`sudo apt-get install libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libxkbcommon-dev libssl-dev`
+- **地图服务**：OpenStreetMap
+  - 通过 WebView 集成
+  - 实现地图交互功能
+  - 支持离线地图缓存
 
-On Fedora Rawhide you need to run:
-
-`dnf install clang clang-devel clang-tools-extra libxkbcommon-devel pkg-config openssl-devel libxcb-devel gtk3-devel atk fontconfig-devel`
-
-### Web Locally
-
-You can compile your app to [WASM](https://en.wikipedia.org/wiki/WebAssembly) and publish it as a web page.
-
-We use [Trunk](https://trunkrs.dev/) to build for web target.
-1. Install the required target with `rustup target add wasm32-unknown-unknown`.
-2. Install Trunk with `cargo install --locked trunk`.
-3. Run `trunk serve` to build and serve on `http://127.0.0.1:8080`. Trunk will rebuild automatically if you edit the project.
-4. Open `http://127.0.0.1:8080/index.html#dev` in a browser. See the warning below.
-
-> `assets/sw.js` script will try to cache our app, and loads the cached version when it cannot connect to server allowing your app to work offline (like PWA).
-> appending `#dev` to `index.html` will skip this caching, allowing us to load the latest builds during development.
-
-### Web Deploy
-1. Just run `trunk build --release`.
-2. It will generate a `dist` directory as a "static html" website
-3. Upload the `dist` directory to any of the numerous free hosting websites including [GitHub Pages](https://docs.github.com/en/free-pro-team@latest/github/working-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site).
-4. we already provide a workflow that auto-deploys our app to GitHub pages if you enable it.
-> To enable Github Pages, you need to go to Repository -> Settings -> Pages -> Source -> set to `gh-pages` branch and `/` (root).
->
-> If `gh-pages` is not available in `Source`, just create and push a branch called `gh-pages` and it should be available.
->
-> If you renamed the `main` branch to something else (say you re-initialized the repository with `master` as the initial branch), be sure to edit the github workflows `.github/workflows/pages.yml` file to reflect the change
-> ```yml
-> on:
->   push:
->     branches:
->       - <branch name>
-> ```
-
-You can test the template app at <https://emilk.github.io/eframe_template/>.
-
-## Updating egui
-
-As of 2023, egui is in active development with frequent releases with breaking changes. [eframe_template](https://github.com/emilk/eframe_template/) will be updated in lock-step to always use the latest version of egui.
-
-When updating `egui` and `eframe` it is recommended you do so one version at the time, and read about the changes in [the egui changelog](https://github.com/emilk/egui/blob/master/CHANGELOG.md) and [eframe changelog](https://github.com/emilk/egui/blob/master/crates/eframe/CHANGELOG.md).
+- **状态管理**：
+  - 使用 Arc<Mutex<T>> 管理共享状态
+  - 通过 egui::Context 管理 UI 状态
+  - 实现响应式数据流

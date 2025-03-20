@@ -27,7 +27,6 @@ impl TemplateApp {
 
         // 配置字体
         let mut fonts = egui::FontDefinitions::default();
-        
         // 添加中文字体
         fonts.font_data.insert(
             "microsoft_yahei".to_owned(),
@@ -35,7 +34,8 @@ impl TemplateApp {
         );
 
         // 将中文字体设置为优先字体
-        fonts.families
+        fonts
+            .families
             .get_mut(&egui::FontFamily::Proportional)
             .unwrap()
             .insert(0, "microsoft_yahei".to_owned());
