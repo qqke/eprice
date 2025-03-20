@@ -31,7 +31,7 @@ impl TemplateApp {
         // 添加中文字体
         fonts.font_data.insert(
             "microsoft_yahei".to_owned(),
-            egui::FontData::from_static(include_bytes!("font\\simhei.ttf")).into(),
+            egui::FontData::from_static(include_bytes!("../assets/simhei.ttf")).into(),
         );
 
         // 将中文字体设置为优先字体
