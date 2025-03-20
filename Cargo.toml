@@ -1,5 +1,5 @@
 [package]
-name = "eframe_price"
+name = "eprice"
 version = "0.1.0"
 authors = ["qqke <qwxd0827@gmail.com>"]
 edition = "2021"

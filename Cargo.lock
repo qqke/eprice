@@ -888,19 +888,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "eframe_price"
-version = "0.1.0"
-dependencies = [
- "eframe",
- "egui",
- "env_logger",
- "log",
- "serde",
- "wasm-bindgen-futures",
- "web-sys",
-]
-
-[[package]]
 name = "egui"
 version = "0.30.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1070,6 +1057,19 @@ name = "epaint_default_fonts"
 version = "0.30.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "66f6ddac3e6ac6fd4c3d48bb8b1943472f8da0f43a4303bcd8a18aa594401c80"
+
+[[package]]
+name = "eprice"
+version = "0.1.0"
+dependencies = [
+ "eframe",
+ "egui",
+ "env_logger",
+ "log",
+ "serde",
+ "wasm-bindgen-futures",
+ "web-sys",
+]
 
 [[package]]
 name = "equivalent"
