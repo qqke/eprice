@@ -1,5 +1,4 @@
 use crate::map::{MapMarker, MapState};
-use egui::Color32;
 
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[derive(serde::Deserialize, serde::Serialize)]
@@ -191,34 +190,34 @@ impl TemplateApp {
             // 左侧商店列表
             ui.vertical(|ui| {
                 ui.heading("附近商店");
+                // 过滤商店列表
+                let filtered_stores: Vec<_> = self
+                    .stores
+                    .iter()
+                    .filter(|store| {
+                        let matches_search = self.search_text.is_empty()
+                            || store
+                                .name
+                                .to_lowercase()
+                                .contains(&self.search_text.to_lowercase())
+                            || store
+                                .address
+                                .to_lowercase()
+                                .contains(&self.search_text.to_lowercase())
+                            || store.tags.iter().any(|tag| {
+                                tag.to_lowercase()
+                                    .contains(&self.search_text.to_lowercase())
+                            });
+
+                        let matches_distance = store.distance <= self.max_distance;
+                        let matches_rating = store.rating >= self.min_rating as f64;
+
+                        matches_search && matches_distance && matches_rating
+                    })
+                    .collect();
                 egui::ScrollArea::vertical().show(ui, |ui| {
-                    // 过滤商店列表
-                    let filtered_stores: Vec<_> = self
-                        .stores
-                        .iter()
-                        .filter(|store| {
-                            let matches_search = self.search_text.is_empty()
-                                || store
-                                    .name
-                                    .to_lowercase()
-                                    .contains(&self.search_text.to_lowercase())
-                                || store
-                                    .address
-                                    .to_lowercase()
-                                    .contains(&self.search_text.to_lowercase())
-                                || store.tags.iter().any(|tag| {
-                                    tag.to_lowercase()
-                                        .contains(&self.search_text.to_lowercase())
-                                });
-
-                            let matches_distance = store.distance <= self.max_distance;
-                            let matches_rating = store.rating >= self.min_rating as f64;
-
-                            matches_search && matches_distance && matches_rating
-                        })
-                        .collect();
-
                     for store in filtered_stores.iter() {
+                        // self.selected_store = None;
                         let is_selected = self.selected_store.as_ref() == Some(store);
                         if ui
                             .selectable_label(
@@ -237,7 +236,6 @@ impl TemplateApp {
             });
 
             ui.separator();
-
             // 右侧地图和商店详情
             ui.vertical(|ui| {
                 // 地图区域
@@ -381,17 +379,3 @@ impl eframe::App for TemplateApp {
         });
     }
 }
-
-// fn powered_by_egui_and_eframe(ui: &mut egui::Ui) {
-//     ui.horizontal(|ui| {
-//         ui.spacing_mut().item_spacing.x = 0.0;
-//         ui.label("Powered by ");
-//         ui.hyperlink_to("egui", "https://github.com/emilk/egui");
-//         ui.label(" and ");
-//         ui.hyperlink_to(
-//             "eframe",
-//             "https://github.com/emilk/egui/tree/master/crates/eframe",
-//         );
-//         ui.label(".");
-//     });
-// }

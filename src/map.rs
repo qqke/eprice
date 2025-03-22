@@ -1,4 +1,4 @@
-use egui::{Color32, Pos2, Rect, Vec2};
+use egui::{Rect, Vec2};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -45,37 +45,22 @@ impl MapState {
     }
 
     pub fn render(&self, ui: &mut egui::Ui, rect: Rect) {
-        // 绘制地图背景
-        ui.painter()
-            .rect_filled(rect, 0.0, Color32::from_rgb(200, 200, 200));
+        let html = r#"
+        <iframe
+            width="800"
+            height="600"
+            style="border:0"
+            loading="lazy"
+            allowfullscreen
+            referrerpolicy="no-referrer-when-downgrade"
+            src="https://www.google.com/maps/embed/v1/view?key=YOUR_API_KEY&center=35.6895,139.6917&zoom=10">
+        </iframe>
+    "#;
 
-        // 计算缩放比例
-        let scale = 2.0f64.powf(self.zoom);
-
-        // 绘制标记
-        for marker in &self.markers {
-            let x = (marker.lng - self.center_lng) * scale * 100.0 + rect.width() as f64 / 2.0;
-            let y = (self.center_lat - marker.lat) * scale * 100.0 + rect.height() as f64 / 2.0;
-
-            let pos = Pos2::new(x as f32, y as f32);
-            let color = if marker.is_selected {
-                Color32::from_rgb(255, 0, 0)
-            } else {
-                Color32::from_rgb(0, 0, 255)
-            };
-
-            // 绘制标记点
-            ui.painter().circle_filled(pos, 5.0, color);
-
-            // 绘制商店名称
-            ui.painter().text(
-                Pos2::new(pos.x + 10.0, pos.y),
-                egui::Align2::LEFT_CENTER,
-                &marker.name,
-                egui::FontId::proportional(12.0),
-                Color32::BLACK,
-            );
-        }
+        ui.horizontal(|ui| {
+            ui.label("嵌入 Google Maps：");
+            ui.add(egui::widgets::TextEdit::multiline(&mut html.to_string()).desired_rows(6));
+        });
     }
 
     pub fn handle_drag(&mut self, delta: Vec2) {
