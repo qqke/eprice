@@ -1,5 +1,9 @@
 use eframe::egui;
-use walkers::{sources::OpenStreetMap, HttpTiles, Map, MapMemory, Position, Tiles};
+use walkers::{
+    extras::{Place, Places, Style},
+    sources::OpenStreetMap,
+    HttpTiles, Map, MapMemory, Position, Tiles,
+};
 
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[derive(serde::Deserialize, serde::Serialize)]
@@ -248,14 +252,27 @@ impl TemplateApp {
                     if let Some(selected_store) = &self.selected_store {
                         if let Some(tiles) = &mut self.tiles {
                             egui::Window::new("地图").show(ui.ctx(), |ui| {
-                                ui.add(Map::new(
-                                    Some(tiles.as_mut()),
-                                    &mut self.map_memory,
-                                    Position::new(
-                                        selected_store.longitude,
-                                        selected_store.latitude,
-                                    ),
-                                ));
+                                ui.add(
+                                    Map::new(
+                                        Some(tiles.as_mut()),
+                                        &mut self.map_memory,
+                                        Position::new(
+                                            selected_store.longitude,
+                                            selected_store.latitude,
+                                        ),
+                                    )
+                                    .with_plugin(Places::new(
+                                        vec![Place {
+                                            position: Position::new(
+                                                selected_store.longitude,
+                                                selected_store.latitude,
+                                            ),
+                                            label: selected_store.name.clone(),
+                                            symbol: '🚆',
+                                            style: Style::default(),
+                                        }],
+                                    )),
+                                );
                             });
                         }
                     }
