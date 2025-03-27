@@ -4,7 +4,6 @@ use walkers::{
     sources::OpenStreetMap,
     HttpTiles, Map, MapMemory, Position, Tiles,
 };
-
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[derive(serde::Deserialize, serde::Serialize)]
 #[serde(default)] // if we add new fields, give them default values when deserializing old state
@@ -291,8 +290,36 @@ impl TemplateApp {
                                             symbol: '🏪',
                                             style: Style::default(),
                                         }],
-                                    )),
+                                    ))
                                 );
+                                // 在地图右上角添加控制按钮
+                                let map_rect = ui.max_rect();
+                                let button_size = egui::vec2(32.0, 32.0);
+                                let padding = 8.0;
+                                // 缩放按钮
+                                let zoom_in_rect = egui::Rect::from_min_size(
+                                    map_rect.right_top() + egui::vec2(-button_size.x - padding, padding),
+                                    button_size,
+                                );
+                                let zoom_out_rect = egui::Rect::from_min_size(
+                                    map_rect.right_top() + egui::vec2(-button_size.x - padding, button_size.y + padding * 2.0),
+                                    button_size,
+                                );
+                                // 定位按钮
+                                let location_rect = egui::Rect::from_min_size(
+                                    map_rect.right_top() + egui::vec2(-button_size.x - padding, button_size.y * 2.0 + padding * 3.0),
+                                    button_size,
+                                );
+
+                                if ui.put(zoom_in_rect, egui::Button::new("➕")).clicked() {
+                                    let _ = self.map_memory.zoom_in();
+                                }
+                                if ui.put(zoom_out_rect, egui::Button::new("➖")).clicked() {
+                                    let _ = self.map_memory.zoom_out();
+                                }
+                                if ui.put(location_rect, egui::Button::new("📍")).clicked() {
+                                    self.map_memory.center_at(store_pos);
+                                }
                             });
                         }
                     }
