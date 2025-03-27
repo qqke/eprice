@@ -244,32 +244,16 @@ impl TemplateApp {
             ui.with_layout(
                 egui::Layout::top_down(egui::Align::Center).with_cross_justify(true),
                 |ui| {
-                    let available_space = ui.available_size();
-                    let map_height = (available_space.y * 0.7).min(600.0);
-                    let map_width = (available_space.x * 0.95).min(800.0);
-
                     // 地图区域
                     if let Some(selected_store) = &self.selected_store {
                         if let Some(tiles) = &mut self.tiles {
-                            ui.add_sized(
-                                [map_width, map_height],
-                                Map::new(
+                            egui::Window::new("地图").show(ui.ctx(), |ui| {
+                                ui.add(Map::new(
                                     Some(tiles.as_mut()),
                                     &mut self.map_memory,
                                     lon_lat(selected_store.longitude, selected_store.latitude),
-                                ),
-                            );
-                        }
-                    } else {
-                        if let Some(tiles) = &mut self.tiles {
-                            ui.add_sized(
-                                [map_width, map_height],
-                                Map::new(
-                                    Some(tiles.as_mut()),
-                                    &mut self.map_memory,
-                                    lon_lat(139.7671, 35.6812), // 东京中心
-                                ),
-                            );
+                                ));
+                            });
                         }
                     }
 
