@@ -1,3 +1,5 @@
+use std::f32;
+
 use eframe::egui;
 use walkers::{
     extras::{Place, Places, Style},
@@ -173,13 +175,23 @@ impl TemplateApp {
 
     fn render_stores_tab(&mut self, ui: &mut egui::Ui) {
         // 搜索和筛选区域
-        ui.horizontal(|ui| {
-            ui.label("搜索：");
-            ui.text_edit_singleline(&mut self.search_text);
-            ui.label("距离(km)：");
-            ui.add(egui::Slider::new(&mut self.max_distance, 0.0..=10.0));
-            ui.label("评分：");
-            ui.add(egui::Slider::new(&mut self.min_rating, 0.0..=5.0));
+        ui.vertical(|ui| {
+            // 搜索栏占据整行
+            ui.horizontal(|ui| {
+                ui.label("搜索：");
+                ui.add(egui::TextEdit::singleline(&mut self.search_text));
+            });
+
+            // 筛选条件分两行显示
+            ui.horizontal_wrapped(|ui| {
+                ui.spacing_mut().item_spacing.x = 10.0;
+
+                ui.label("距离：");
+                ui.add(egui::Slider::new(&mut self.max_distance, 0.0..=10.0).suffix("km"));
+
+                ui.label("评分：");
+                ui.add(egui::Slider::new(&mut self.min_rating, 0.0..=5.0).suffix("分"));
+            });
         });
 
         ui.separator();
@@ -223,30 +235,35 @@ impl TemplateApp {
 
                                 for store in filtered_stores.iter() {
                                     let is_selected = self.selected_store.as_ref() == Some(store);
-                                    if ui
-                                        .selectable_label(
-                                            is_selected,
-                                            format!(
-                                                "{} - {:.1}km - {:.1}分",
-                                                store.name, store.distance, store.rating
-                                            ),
-                                        )
-                                        .clicked()
-                                    {
+                                    let response = ui.selectable_label(
+                                        is_selected,
+                                        format!(
+                                            "{} - {:.1}km - {:.1}分",
+                                            store.name, store.distance, store.rating
+                                        ),
+                                    );
+                                    if response.clicked() {
                                         self.selected_store = Some((*store).clone());
                                     }
+
+                                    response.on_hover_text(format!(
+                                        "地址：{}\n营业时间：{}\n电话：{}\n评分：{:.1}\n距离：{:.1}km\n标签：{}",
+                                        store.address,
+                                        store.opening_hours,
+                                        store.phone,
+                                        store.rating,
+                                        store.distance,
+                                        store.tags.join("、")
+                                    ));
                                 }
                             });
                         },
                     );
                 },
             );
-
-            ui.separator();
-
             // 右侧地图和商店详情
             ui.with_layout(
-                egui::Layout::top_down(egui::Align::Center).with_cross_justify(true),
+                egui::Layout::top_down(egui::Align::LEFT).with_cross_justify(true),
                 |ui| {
                     // 地图区域
                     if let Some(selected_store) = &self.selected_store {
@@ -277,23 +294,6 @@ impl TemplateApp {
                         }
                     }
 
-                    // 商店详情
-                    if let Some(selected_store) = self.selected_store.as_ref() {
-                        ui.separator();
-                        ui.heading(&selected_store.name);
-                        ui.label(format!("地址：{}", selected_store.address));
-                        ui.label(format!("营业时间：{}", selected_store.opening_hours));
-                        ui.label(format!("电话：{}", selected_store.phone));
-                        ui.label(format!("评分：{:.1}", selected_store.rating));
-                        ui.label(format!("距离：{:.1}km", selected_store.distance));
-
-                        ui.label("标签：");
-                        ui.horizontal(|ui| {
-                            for tag in &selected_store.tags {
-                                ui.label(tag);
-                            }
-                        });
-                    }
                 },
             );
         });
