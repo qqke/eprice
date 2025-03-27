@@ -1,5 +1,5 @@
 use eframe::egui;
-use walkers::{lon_lat, sources::OpenStreetMap, HttpTiles, Map, MapMemory, Tiles};
+use walkers::{sources::OpenStreetMap, HttpTiles, Map, MapMemory, Position, Tiles};
 
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[derive(serde::Deserialize, serde::Serialize)]
@@ -251,7 +251,10 @@ impl TemplateApp {
                                 ui.add(Map::new(
                                     Some(tiles.as_mut()),
                                     &mut self.map_memory,
-                                    lon_lat(selected_store.longitude, selected_store.latitude),
+                                    Position::new(
+                                        selected_store.longitude,
+                                        selected_store.latitude,
+                                    ),
                                 ));
                             });
                         }
