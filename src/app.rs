@@ -1,5 +1,3 @@
-use std::f32;
-
 use eframe::egui;
 use walkers::{
     extras::{Place, Places, Style},
@@ -17,6 +15,7 @@ pub struct TemplateApp {
     max_distance: f64,
     current_tab: Tab,
     selected_store: Option<Store>,
+    previous_store_id: Option<String>,
     #[serde(skip)]
     tiles: Option<Box<dyn Tiles>>,
     #[serde(skip)]
@@ -134,6 +133,7 @@ impl Default for TemplateApp {
             max_distance: f64::MAX,
             current_tab: Tab::default(),
             selected_store: None,
+            previous_store_id: None,
             tiles: None,
             map_memory: MapMemory::default(),
         }
@@ -269,23 +269,26 @@ impl TemplateApp {
                     if let Some(selected_store) = &self.selected_store {
                         if let Some(tiles) = &mut self.tiles {
                             egui::Window::new("地图").show(ui.ctx(), |ui| {
+                                let store_pos = Position::new(
+                                    selected_store.longitude,
+                                    selected_store.latitude,
+                                );
+
+                                if self.previous_store_id.as_ref() != Some(&selected_store.id) {
+                                    self.map_memory.center_at(store_pos);
+                                    self.previous_store_id = Some(selected_store.id.clone());
+                                }
                                 ui.add(
                                     Map::new(
                                         Some(tiles.as_mut()),
                                         &mut self.map_memory,
-                                        Position::new(
-                                            selected_store.longitude,
-                                            selected_store.latitude,
-                                        ),
+                                        store_pos,
                                     )
                                     .with_plugin(Places::new(
                                         vec![Place {
-                                            position: Position::new(
-                                                selected_store.longitude,
-                                                selected_store.latitude,
-                                            ),
+                                            position: store_pos,
                                             label: selected_store.name.clone(),
-                                            symbol: '🚆',
+                                            symbol: '🏪',
                                             style: Style::default(),
                                         }],
                                     )),
@@ -293,7 +296,6 @@ impl TemplateApp {
                             });
                         }
                     }
-
                 },
             );
         });
