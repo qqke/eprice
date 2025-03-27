@@ -195,137 +195,119 @@ impl TemplateApp {
 
         ui.separator();
 
-        // 商店列表和地图区域
-        ui.horizontal(|ui| {
-            // 左侧商店列表
-            ui.with_layout(
-                egui::Layout::left_to_right(egui::Align::TOP).with_cross_justify(true),
-                |ui| {
-                    ui.allocate_ui_with_layout(
-                        egui::vec2(ui.available_width() * 0.3, ui.available_height()),
-                        egui::Layout::top_down(egui::Align::LEFT),
-                        |ui| {
-                            ui.heading("附近商店");
-                            egui::ScrollArea::vertical().show(ui, |ui| {
-                                let filtered_stores: Vec<_> = self
-                                    .stores
-                                    .iter()
-                                    .filter(|store| {
-                                        let matches_search = self.search_text.is_empty()
-                                            || store
-                                                .name
-                                                .to_lowercase()
-                                                .contains(&self.search_text.to_lowercase())
-                                            || store
-                                                .address
-                                                .to_lowercase()
-                                                .contains(&self.search_text.to_lowercase())
-                                            || store.tags.iter().any(|tag| {
-                                                tag.to_lowercase()
-                                                    .contains(&self.search_text.to_lowercase())
-                                            });
+        let filtered_stores: Vec<_> = self
+            .stores
+            .iter()
+            .filter(|store| {
+                let matches_search = self.search_text.is_empty()
+                    || store
+                        .name
+                        .to_lowercase()
+                        .contains(&self.search_text.to_lowercase())
+                    || store
+                        .address
+                        .to_lowercase()
+                        .contains(&self.search_text.to_lowercase())
+                    || store.tags.iter().any(|tag| {
+                        tag.to_lowercase()
+                            .contains(&self.search_text.to_lowercase())
+                    });
 
-                                        let matches_distance = store.distance <= self.max_distance;
-                                        let matches_rating = store.rating >= self.min_rating;
+                let matches_distance = store.distance <= self.max_distance;
+                let matches_rating = store.rating >= self.min_rating;
 
-                                        matches_search && matches_distance && matches_rating
-                                    })
-                                    .collect();
+                matches_search && matches_distance && matches_rating
+            })
+            .collect();
 
-                                for store in filtered_stores.iter() {
-                                    let is_selected = self.selected_store.as_ref() == Some(store);
-                                    let response = ui.selectable_label(
-                                        is_selected,
-                                        format!(
-                                            "{} - {:.1}km - {:.1}分",
-                                            store.name, store.distance, store.rating
-                                        ),
-                                    );
-                                    if response.clicked() {
-                                        self.selected_store = Some((*store).clone());
-                                    }
-
-                                    response.on_hover_text(format!(
-                                        "地址：{}\n营业时间：{}\n电话：{}\n评分：{:.1}\n距离：{:.1}km\n标签：{}",
-                                        store.address,
-                                        store.opening_hours,
-                                        store.phone,
-                                        store.rating,
-                                        store.distance,
-                                        store.tags.join("、")
-                                    ));
-                                }
-                            });
-                        },
+        egui::Grid::new("my_grid")
+            .num_columns(2)
+            .spacing([40.0, 4.0])
+            .striped(true)
+            .show(ui, |ui| {
+                ui.heading("附近商店");
+                ui.end_row();
+                for store in filtered_stores.iter() {
+                    let is_selected = self.selected_store.as_ref() == Some(store);
+                    let response = ui.selectable_label(
+                        is_selected,
+                        format!(
+                            "{} - {:.1}km - {:.1}分",
+                            store.name, store.distance, store.rating
+                        ),
                     );
-                },
-            );
-            // 右侧地图和商店详情
-            ui.with_layout(
-                egui::Layout::top_down(egui::Align::LEFT).with_cross_justify(true),
-                |ui| {
-                    // 地图区域
-                    if let Some(selected_store) = &self.selected_store {
-                        if let Some(tiles) = &mut self.tiles {
-                            egui::Window::new("地图").show(ui.ctx(), |ui| {
-                                let store_pos = Position::new(
-                                    selected_store.longitude,
-                                    selected_store.latitude,
-                                );
-
-                                if self.previous_store_id.as_ref() != Some(&selected_store.id) {
-                                    self.map_memory.center_at(store_pos);
-                                    self.previous_store_id = Some(selected_store.id.clone());
-                                }
-                                ui.add(
-                                    Map::new(
-                                        Some(tiles.as_mut()),
-                                        &mut self.map_memory,
-                                        store_pos,
-                                    )
-                                    .with_plugin(Places::new(
-                                        vec![Place {
-                                            position: store_pos,
-                                            label: selected_store.name.clone(),
-                                            symbol: '🏪',
-                                            style: Style::default(),
-                                        }],
-                                    ))
-                                );
-                                // 在地图右上角添加控制按钮
-                                let map_rect = ui.max_rect();
-                                let button_size = egui::vec2(32.0, 32.0);
-                                let padding = 8.0;
-                                // 缩放按钮
-                                let zoom_in_rect = egui::Rect::from_min_size(
-                                    map_rect.right_top() + egui::vec2(-button_size.x - padding, padding),
-                                    button_size,
-                                );
-                                let zoom_out_rect = egui::Rect::from_min_size(
-                                    map_rect.right_top() + egui::vec2(-button_size.x - padding, button_size.y + padding * 2.0),
-                                    button_size,
-                                );
-                                // 定位按钮
-                                let location_rect = egui::Rect::from_min_size(
-                                    map_rect.right_top() + egui::vec2(-button_size.x - padding, button_size.y * 2.0 + padding * 3.0),
-                                    button_size,
-                                );
-
-                                if ui.put(zoom_in_rect, egui::Button::new("➕")).clicked() {
-                                    let _ = self.map_memory.zoom_in();
-                                }
-                                if ui.put(zoom_out_rect, egui::Button::new("➖")).clicked() {
-                                    let _ = self.map_memory.zoom_out();
-                                }
-                                if ui.put(location_rect, egui::Button::new("📍")).clicked() {
-                                    self.map_memory.center_at(store_pos);
-                                }
-                            });
-                        }
+                    if response.clicked() {
+                        self.selected_store = Some((*store).clone());
                     }
-                },
-            );
-        });
+
+                    response.on_hover_text(format!(
+                        "地址：{}\n营业时间：{}\n电话：{}\n评分：{:.1}\n距离：{:.1}km\n标签：{}",
+                        store.address,
+                        store.opening_hours,
+                        store.phone,
+                        store.rating,
+                        store.distance,
+                        store.tags.join("、")
+                    ));
+                    ui.end_row();
+                }
+            });
+        // 地图区域
+        if let Some(selected_store) = &self.selected_store {
+            if let Some(tiles) = &mut self.tiles {
+                egui::Window::new("地图").show(ui.ctx(), |ui| {
+                    let store_pos =
+                        Position::new(selected_store.longitude, selected_store.latitude);
+
+                    if self.previous_store_id.as_ref() != Some(&selected_store.id) {
+                        self.map_memory.center_at(store_pos);
+                        self.previous_store_id = Some(selected_store.id.clone());
+                    }
+                    ui.add(
+                        Map::new(Some(tiles.as_mut()), &mut self.map_memory, store_pos)
+                            .with_plugin(Places::new(vec![Place {
+                                position: store_pos,
+                                label: selected_store.name.clone(),
+                                symbol: '🏪',
+                                style: Style::default(),
+                            }])),
+                    );
+                    // 在地图右上角添加控制按钮
+                    let map_rect = ui.max_rect();
+                    let button_size = egui::vec2(32.0, 32.0);
+                    let padding = 8.0;
+                    // 缩放按钮
+                    let zoom_in_rect = egui::Rect::from_min_size(
+                        map_rect.right_top() + egui::vec2(-button_size.x - padding, padding),
+                        button_size,
+                    );
+                    let zoom_out_rect = egui::Rect::from_min_size(
+                        map_rect.right_top()
+                            + egui::vec2(-button_size.x - padding, button_size.y + padding * 2.0),
+                        button_size,
+                    );
+                    // 定位按钮
+                    let location_rect = egui::Rect::from_min_size(
+                        map_rect.right_top()
+                            + egui::vec2(
+                                -button_size.x - padding,
+                                button_size.y * 2.0 + padding * 3.0,
+                            ),
+                        button_size,
+                    );
+
+                    if ui.put(zoom_in_rect, egui::Button::new("➕")).clicked() {
+                        let _ = self.map_memory.zoom_in();
+                    }
+                    if ui.put(zoom_out_rect, egui::Button::new("➖")).clicked() {
+                        let _ = self.map_memory.zoom_out();
+                    }
+                    if ui.put(location_rect, egui::Button::new("📍")).clicked() {
+                        self.map_memory.center_at(store_pos);
+                    }
+                });
+            }
+        }
     }
 }
 
