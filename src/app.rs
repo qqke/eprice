@@ -21,8 +21,8 @@ pub struct TemplateApp {
     #[serde(skip)]
     map_memory: MapMemory,
     products: Vec<Product>,
-    current_location: (f64, f64),     // 当前位置 (纬度, 经度)
-    selected_product: Option<String>, // 选中的商品ID
+    current_location: (f64, f64),      // 当前位置 (纬度, 经度)
+    selected_product: Option<Product>, // 选中的商品
     product_search_text: String,
     selected_category: Option<String>,
 }
@@ -738,14 +738,15 @@ impl TemplateApp {
                 let price_range = self.get_price_range(product);
 
                 ui.horizontal(|ui| {
+                    let selected_product_id = self.selected_product.as_ref().map(|p| p.id.clone());
                     if ui
                         .selectable_label(
-                            self.selected_product.as_ref() == Some(&product.id),
+                            selected_product_id.as_ref() == Some(&product.id),
                             &product.name,
                         )
                         .clicked()
                     {
-                        self.selected_product = Some(product.id.clone());
+                        self.selected_product = Some(product.clone());
                     }
                     ui.label(&product.category);
                     ui.label(format!("¥{:.2}", lowest_price.map_or(0.0, |p| p.price)));
@@ -756,10 +757,8 @@ impl TemplateApp {
         });
 
         // 如果选中了商品，显示详情
-        if let Some(product_id) = &self.selected_product {
-            if let Some(product) = self.products.iter().find(|p| p.id == *product_id) {
-                self.show_product_detail(ui, product);
-            }
+        if let Some(selected_product) = &self.selected_product {
+            self.show_product_detail(ui, selected_product);
         }
     }
 
