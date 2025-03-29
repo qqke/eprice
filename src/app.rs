@@ -13,8 +13,6 @@ use walkers::{
 pub struct TemplateApp {
     stores: Vec<Store>,
     search_text: String,
-    min_rating: f64,
-    max_distance: f64,
     current_tab: Tab,
     selected_store: Option<Store>,
     previous_store_id: Option<String>,
@@ -117,8 +115,6 @@ impl Default for TemplateApp {
                 },
             ],
             search_text: String::new(),
-            min_rating: 0.0,
-            max_distance: f64::MAX,
             current_tab: Tab::default(),
             selected_store: None,
             previous_store_id: None,
@@ -190,17 +186,6 @@ impl TemplateApp {
                 ui.label("搜索：");
                 ui.add(egui::TextEdit::singleline(&mut self.search_text));
             });
-
-            // 筛选条件分两行显示
-            ui.horizontal_wrapped(|ui| {
-                ui.spacing_mut().item_spacing.x = 10.0;
-
-                ui.label("距离：");
-                ui.add(egui::Slider::new(&mut self.max_distance, 0.0..=10.0).suffix("km"));
-
-                ui.label("评分：");
-                ui.add(egui::Slider::new(&mut self.min_rating, 0.0..=5.0).suffix("分"));
-            });
         });
 
         ui.separator();
@@ -214,56 +199,77 @@ impl TemplateApp {
                     |ui| {
                         ui.heading("附近商店");
                         egui::ScrollArea::vertical().show(ui, |ui| {
-                            // 表格标题行
-                            {
-                                ui.style_mut().spacing.item_spacing.x = 10.0;
-                                egui::Grid::new("stores_header")
-                                    .num_columns(5)
-                                    .spacing([10.0, 4.0])
-                                    .show(ui, |ui| {
+                            egui_extras::TableBuilder::new(ui)
+                                .striped(true)
+                                .column(
+                                    egui_extras::Column::initial(100.0)
+                                        .at_least(40.0)
+                                        .clip(true)
+                                        .resizable(true),
+                                )
+                                .column(
+                                    egui_extras::Column::initial(100.0)
+                                        .at_least(40.0)
+                                        .clip(true)
+                                        .resizable(true),
+                                )
+                                .column(
+                                    egui_extras::Column::initial(100.0)
+                                        .at_least(40.0)
+                                        .clip(true)
+                                        .resizable(true),
+                                )
+                                .column(
+                                    egui_extras::Column::initial(100.0)
+                                        .at_least(60.0)
+                                        .clip(true)
+                                        .resizable(true),
+                                )
+                                .column(
+                                    egui_extras::Column::initial(100.0)
+                                        .at_least(40.0)
+                                        .clip(true)
+                                        .resizable(true),
+                                )
+                                .header(20.0, |mut header| {
+                                    header.col(|ui| {
                                         ui.label("店名");
-                                        ui.label("距离");
-                                        ui.label("评分");
-                                        ui.label("营业时间");
-                                        ui.label("标签");
-                                        ui.end_row();
                                     });
-                            }
-                            ui.separator();
-
-                            let filtered_stores: Vec<_> = self
-                                .stores
-                                .iter()
-                                .filter(|store| {
-                                    let matches_search = self.search_text.is_empty()
-                                        || store
-                                            .name
-                                            .to_lowercase()
-                                            .contains(&self.search_text.to_lowercase())
-                                        || store
-                                            .address
-                                            .to_lowercase()
-                                            .contains(&self.search_text.to_lowercase())
-                                        || store.tags.iter().any(|tag| {
-                                            tag.to_lowercase()
-                                                .contains(&self.search_text.to_lowercase())
-                                        });
-
-                                    let distance = store.distance_to(
-                                        self.current_location.0,
-                                        self.current_location.1,
-                                    );
-                                    let matches_distance = distance <= self.max_distance;
-                                    let matches_rating = store.rating >= self.min_rating;
-
-                                    matches_search && matches_distance && matches_rating
+                                    header.col(|ui| {
+                                        ui.label("距离");
+                                    });
+                                    header.col(|ui| {
+                                        ui.label("评分");
+                                    });
+                                    header.col(|ui| {
+                                        ui.label("营业时间");
+                                    });
+                                    header.col(|ui| {
+                                        ui.label("标签");
+                                    });
                                 })
-                                .collect();
+                                .body(|mut body| {
+                                    let filtered_stores: Vec<_> = self
+                                        .stores
+                                        .iter()
+                                        .filter(|store| {
+                                            let matches_search = self.search_text.is_empty()
+                                                || store
+                                                    .name
+                                                    .to_lowercase()
+                                                    .contains(&self.search_text.to_lowercase())
+                                                || store
+                                                    .address
+                                                    .to_lowercase()
+                                                    .contains(&self.search_text.to_lowercase())
+                                                || store.tags.iter().any(|tag| {
+                                                    tag.to_lowercase()
+                                                        .contains(&self.search_text.to_lowercase())
+                                                });
+                                            matches_search
+                                        })
+                                        .collect();
 
-                            egui::Grid::new("stores_grid")
-                                .num_columns(5)
-                                .spacing([10.0, 4.0])
-                                .show(ui, |ui| {
                                     for store in filtered_stores.iter() {
                                         let is_selected =
                                             self.selected_store.as_ref() == Some(store);
@@ -271,25 +277,28 @@ impl TemplateApp {
                                             self.current_location.0,
                                             self.current_location.1,
                                         );
-
-                                        // 店名列（可点击）
-                                        if ui.selectable_label(is_selected, &store.name).clicked() {
-                                            self.selected_store = Some((*store).clone());
-                                        }
-
-                                        // 距离列
-                                        ui.label(format!("{:.1}km", distance));
-
-                                        // 评分列
-                                        ui.label(format!("{:.1}分", store.rating));
-
-                                        // 营业时间列
-                                        ui.label(&store.opening_hours);
-
-                                        // 标签列
-                                        ui.label(store.tags.join("、"));
-
-                                        ui.end_row();
+                                        body.row(20.0, |mut row| {
+                                            row.col(|ui| {
+                                                if ui
+                                                    .selectable_label(is_selected, &store.name)
+                                                    .clicked()
+                                                {
+                                                    self.selected_store = Some((*store).clone());
+                                                }
+                                            });
+                                            row.col(|ui| {
+                                                ui.label(format!("{:.1}km", distance));
+                                            });
+                                            row.col(|ui| {
+                                                ui.label(format!("{:.1}分", store.rating));
+                                            });
+                                            row.col(|ui| {
+                                                ui.label(&store.opening_hours);
+                                            });
+                                            row.col(|ui| {
+                                                ui.label(store.tags.join("、"));
+                                            });
+                                        });
                                     }
                                 });
                         });

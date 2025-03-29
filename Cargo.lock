@@ -1300,6 +1300,7 @@ dependencies = [
  "chrono",
  "eframe",
  "egui",
+ "egui_extras",
  "env_logger",
  "geo",
  "log",
