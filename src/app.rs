@@ -140,7 +140,292 @@ impl Default for TemplateApp {
                     }],
                     tags: vec!["饮料".to_string(), "碳酸".to_string()],
                 },
-                // ... 更多商品数据 ...
+                Product {
+                    id: "2".to_string(),
+                    name: "百事可乐".to_string(),
+                    category: "饮料".to_string(),
+                    description: "碳酸饮料，330ml".to_string(),
+                    images: vec!["pepsi.jpg".to_string()],
+                    prices: vec![PriceRecord {
+                        store_id: "2".to_string(),
+                        price: 3.0,
+                        timestamp: Utc::now(),
+                        is_on_sale: true,
+                    }],
+                    tags: vec!["饮料".to_string(), "碳酸".to_string()],
+                },
+                Product {
+                    id: "3".to_string(),
+                    name: "雪碧".to_string(),
+                    category: "饮料".to_string(),
+                    description: "柠檬味碳酸饮料，330ml".to_string(),
+                    images: vec!["sprite.jpg".to_string()],
+                    prices: vec![PriceRecord {
+                        store_id: "3".to_string(),
+                        price: 3.2,
+                        timestamp: Utc::now(),
+                        is_on_sale: false,
+                    }],
+                    tags: vec!["饮料".to_string(), "柠檬味".to_string(), "碳酸".to_string()],
+                },
+                Product {
+                    id: "4".to_string(),
+                    name: "芬达".to_string(),
+                    category: "饮料".to_string(),
+                    description: "橙味碳酸饮料，330ml".to_string(),
+                    images: vec!["fanta.jpg".to_string()],
+                    prices: vec![PriceRecord {
+                        store_id: "4".to_string(),
+                        price: 3.1,
+                        timestamp: Utc::now(),
+                        is_on_sale: false,
+                    }],
+                    tags: vec!["饮料".to_string(), "橙味".to_string(), "碳酸".to_string()],
+                },
+                Product {
+                    id: "5".to_string(),
+                    name: "美年达".to_string(),
+                    category: "饮料".to_string(),
+                    description: "橙味碳酸饮料，330ml".to_string(),
+                    images: vec!["mirinda.jpg".to_string()],
+                    prices: vec![PriceRecord {
+                        store_id: "5".to_string(),
+                        price: 3.3,
+                        timestamp: Utc::now(),
+                        is_on_sale: true,
+                    }],
+                    tags: vec!["饮料".to_string(), "橙味".to_string(), "碳酸".to_string()],
+                },
+                Product {
+                    id: "6".to_string(),
+                    name: "红牛".to_string(),
+                    category: "饮料".to_string(),
+                    description: "能量饮料，250ml".to_string(),
+                    images: vec!["redbull.jpg".to_string()],
+                    prices: vec![PriceRecord {
+                        store_id: "1".to_string(),
+                        price: 5.0,
+                        timestamp: Utc::now(),
+                        is_on_sale: false,
+                    }],
+                    tags: vec!["饮料".to_string(), "能量".to_string()],
+                },
+                Product {
+                    id: "7".to_string(),
+                    name: "脉动".to_string(),
+                    category: "饮料".to_string(),
+                    description: "维生素饮料，500ml".to_string(),
+                    images: vec!["maido.jpg".to_string()],
+                    prices: vec![PriceRecord {
+                        store_id: "2".to_string(),
+                        price: 4.5,
+                        timestamp: Utc::now(),
+                        is_on_sale: true,
+                    }],
+                    tags: vec!["饮料".to_string(), "维生素".to_string()],
+                },
+                Product {
+                    id: "8".to_string(),
+                    name: "怡泉".to_string(),
+                    category: "饮料".to_string(),
+                    description: "苏打水，330ml".to_string(),
+                    images: vec!["schweppes.jpg".to_string()],
+                    prices: vec![PriceRecord {
+                        store_id: "3".to_string(),
+                        price: 3.8,
+                        timestamp: Utc::now(),
+                        is_on_sale: false,
+                    }],
+                    tags: vec!["饮料".to_string(), "苏打水".to_string()],
+                },
+                Product {
+                    id: "9".to_string(),
+                    name: "康师傅绿茶".to_string(),
+                    category: "饮料".to_string(),
+                    description: "绿茶饮料，500ml".to_string(),
+                    images: vec!["masterkonggreentea.jpg".to_string()],
+                    prices: vec![PriceRecord {
+                        store_id: "4".to_string(),
+                        price: 3.5,
+                        timestamp: Utc::now(),
+                        is_on_sale: false,
+                    }],
+                    tags: vec!["饮料".to_string(), "绿茶".to_string()],
+                },
+                Product {
+                    id: "10".to_string(),
+                    name: "统一冰红茶".to_string(),
+                    category: "饮料".to_string(),
+                    description: "红茶饮料，500ml".to_string(),
+                    images: vec!["uniicetea.jpg".to_string()],
+                    prices: vec![PriceRecord {
+                        store_id: "5".to_string(),
+                        price: 3.5,
+                        timestamp: Utc::now(),
+                        is_on_sale: true,
+                    }],
+                    tags: vec!["饮料".to_string(), "红茶".to_string()],
+                },
+                Product {
+                    id: "11".to_string(),
+                    name: "农夫山泉".to_string(),
+                    category: "饮料".to_string(),
+                    description: "天然矿泉水，550ml".to_string(),
+                    images: vec!["nongfushanquan.jpg".to_string()],
+                    prices: vec![PriceRecord {
+                        store_id: "1".to_string(),
+                        price: 2.0,
+                        timestamp: Utc::now(),
+                        is_on_sale: false,
+                    }],
+                    tags: vec!["饮料".to_string(), "矿泉水".to_string()],
+                },
+                Product {
+                    id: "12".to_string(),
+                    name: "康师傅矿泉水".to_string(),
+                    category: "饮料".to_string(),
+                    description: "矿泉水，550ml".to_string(),
+                    images: vec!["masterkongwater.jpg".to_string()],
+                    prices: vec![PriceRecord {
+                        store_id: "2".to_string(),
+                        price: 2.0,
+                        timestamp: Utc::now(),
+                        is_on_sale: false,
+                    }],
+                    tags: vec!["饮料".to_string(), "矿泉水".to_string()],
+                },
+                Product {
+                    id: "13".to_string(),
+                    name: "可口可乐零度".to_string(),
+                    category: "饮料".to_string(),
+                    description: "无糖碳酸饮料，330ml".to_string(),
+                    images: vec!["cocacolazero.jpg".to_string()],
+                    prices: vec![PriceRecord {
+                        store_id: "3".to_string(),
+                        price: 3.5,
+                        timestamp: Utc::now(),
+                        is_on_sale: false,
+                    }],
+                    tags: vec!["饮料".to_string(), "无糖".to_string(), "碳酸".to_string()],
+                },
+                Product {
+                    id: "14".to_string(),
+                    name: "百事可乐无糖".to_string(),
+                    category: "饮料".to_string(),
+                    description: "无糖碳酸饮料，330ml".to_string(),
+                    images: vec!["pepsizero.jpg".to_string()],
+                    prices: vec![PriceRecord {
+                        store_id: "4".to_string(),
+                        price: 3.0,
+                        timestamp: Utc::now(),
+                        is_on_sale: true,
+                    }],
+                    tags: vec!["饮料".to_string(), "无糖".to_string(), "碳酸".to_string()],
+                },
+                Product {
+                    id: "15".to_string(),
+                    name: "雪碧无糖".to_string(),
+                    category: "饮料".to_string(),
+                    description: "无糖柠檬味碳酸饮料，330ml".to_string(),
+                    images: vec!["spritezero.jpg".to_string()],
+                    prices: vec![PriceRecord {
+                        store_id: "5".to_string(),
+                        price: 3.2,
+                        timestamp: Utc::now(),
+                        is_on_sale: false,
+                    }],
+                    tags: vec![
+                        "饮料".to_string(),
+                        "无糖".to_string(),
+                        "柠檬味".to_string(),
+                        "碳酸".to_string(),
+                    ],
+                },
+                Product {
+                    id: "16".to_string(),
+                    name: "芬达无糖".to_string(),
+                    category: "饮料".to_string(),
+                    description: "无糖橙味碳酸饮料，330ml".to_string(),
+                    images: vec!["fantazero.jpg".to_string()],
+                    prices: vec![PriceRecord {
+                        store_id: "1".to_string(),
+                        price: 3.1,
+                        timestamp: Utc::now(),
+                        is_on_sale: false,
+                    }],
+                    tags: vec![
+                        "饮料".to_string(),
+                        "无糖".to_string(),
+                        "橙味".to_string(),
+                        "碳酸".to_string(),
+                    ],
+                },
+                Product {
+                    id: "17".to_string(),
+                    name: "美年达无糖".to_string(),
+                    category: "饮料".to_string(),
+                    description: "无糖橙味碳酸饮料，330ml".to_string(),
+                    images: vec!["mirindazero.jpg".to_string()],
+                    prices: vec![PriceRecord {
+                        store_id: "2".to_string(),
+                        price: 3.3,
+                        timestamp: Utc::now(),
+                        is_on_sale: true,
+                    }],
+                    tags: vec![
+                        "饮料".to_string(),
+                        "无糖".to_string(),
+                        "橙味".to_string(),
+                        "碳酸".to_string(),
+                    ],
+                },
+                Product {
+                    id: "18".to_string(),
+                    name: "七喜".to_string(),
+                    category: "饮料".to_string(),
+                    description: "柠檬味碳酸饮料，330ml".to_string(),
+                    images: vec!["7up.jpg".to_string()],
+                    prices: vec![PriceRecord {
+                        store_id: "3".to_string(),
+                        price: 3.2,
+                        timestamp: Utc::now(),
+                        is_on_sale: false,
+                    }],
+                    tags: vec!["饮料".to_string(), "柠檬味".to_string(), "碳酸".to_string()],
+                },
+                Product {
+                    id: "19".to_string(),
+                    name: "七喜无糖".to_string(),
+                    category: "饮料".to_string(),
+                    description: "无糖柠檬味碳酸饮料，330ml".to_string(),
+                    images: vec!["7upzero.jpg".to_string()],
+                    prices: vec![PriceRecord {
+                        store_id: "4".to_string(),
+                        price: 3.2,
+                        timestamp: Utc::now(),
+                        is_on_sale: true,
+                    }],
+                    tags: vec![
+                        "饮料".to_string(),
+                        "无糖".to_string(),
+                        "柠檬味".to_string(),
+                        "碳酸".to_string(),
+                    ],
+                },
+                Product {
+                    id: "20".to_string(),
+                    name: "佳得乐".to_string(),
+                    category: "饮料".to_string(),
+                    description: "运动饮料，600ml".to_string(),
+                    images: vec!["gatorade.jpg".to_string()],
+                    prices: vec![PriceRecord {
+                        store_id: "5".to_string(),
+                        price: 4.0,
+                        timestamp: Utc::now(),
+                        is_on_sale: false,
+                    }],
+                    tags: vec!["饮料".to_string(), "运动".to_string()],
+                },
             ],
             current_location: (35.6812, 139.7671), // 默认位置（东京站）
             selected_product: None,
@@ -171,12 +456,12 @@ impl TemplateApp {
         cc.egui_ctx.set_fonts(fonts);
 
         // 加载上一次的应用状态（如果有）
-        let mut app = if let Some(storage) = cc.storage {
-            eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default()
-        } else {
-            Self::default()
-        };
-
+        // let mut app = if let Some(storage) = cc.storage {
+        //     eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default()
+        // } else {
+        //     Self::default()
+        // };
+        let mut app = Self::default();
         // 初始化地图
         app.tiles = Some(Box::new(HttpTiles::new(OpenStreetMap, cc.egui_ctx.clone())));
 
