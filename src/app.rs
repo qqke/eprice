@@ -1,40 +1,11 @@
-use chrono::{DateTime, Utc};
+use crate::models::{PriceRecord, Product, Store};
+use chrono::Utc;
 use eframe::egui;
-use serde::{Deserialize, Serialize};
 use walkers::{
     extras::{Place, Places, Style},
     sources::OpenStreetMap,
     HttpTiles, Map, MapMemory, Position, Tiles,
 };
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Product {
-    pub id: String,
-    pub name: String,
-    pub category: String,
-    pub description: String,
-    pub images: Vec<String>,
-    pub prices: Vec<PriceRecord>,
-    pub tags: Vec<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct PriceRecord {
-    pub store_id: String,
-    pub price: f64,
-    #[serde(with = "chrono::serde::ts_seconds")]
-    pub timestamp: DateTime<Utc>,
-    pub is_on_sale: bool,
-}
-
-impl Product {
-    pub fn current_lowest_price(&self) -> Option<&PriceRecord> {
-        self.prices
-            .iter()
-            .filter(|p| p.timestamp.date_naive() == Utc::now().date_naive())
-            .min_by(|a, b| a.price.partial_cmp(&b.price).unwrap())
-    }
-}
 
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[derive(serde::Deserialize, serde::Serialize)]
@@ -56,36 +27,6 @@ pub struct TemplateApp {
     selected_product: Option<String>, // 选中的商品ID
     product_search_text: String,
     selected_category: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct Store {
-    pub id: String,
-    pub name: String,
-    pub address: String,
-    pub latitude: f64,
-    pub longitude: f64,
-    pub rating: f64,
-    pub opening_hours: String,
-    pub phone: String,
-    pub tags: Vec<String>,
-}
-
-impl Store {
-    pub fn distance_to(&self, lat: f64, lon: f64) -> f64 {
-        const EARTH_RADIUS: f64 = 6371.0; // 地球半径，单位：公里
-
-        let lat1 = self.latitude.to_radians();
-        let lat2 = lat.to_radians();
-        let delta_lat = (lat - self.latitude).to_radians();
-        let delta_lon = (lon - self.longitude).to_radians();
-
-        let a = (delta_lat / 2.0).sin() * (delta_lat / 2.0).sin()
-            + lat1.cos() * lat2.cos() * (delta_lon / 2.0).sin() * (delta_lon / 2.0).sin();
-        let c = 2.0 * a.sqrt().atan2((1.0 - a).sqrt());
-
-        EARTH_RADIUS * c
-    }
 }
 
 #[derive(serde::Deserialize, serde::Serialize, PartialEq)]
