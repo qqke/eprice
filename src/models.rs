@@ -45,6 +45,7 @@ pub struct Store {
     pub opening_hours: String, // 营业时间
     pub phone: String,         // 联系电话
     pub tags: Vec<String>,     // 门店标签
+    pub symbol: char,          // 门店符号
 }
 
 impl Store {

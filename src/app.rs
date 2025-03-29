@@ -56,6 +56,7 @@ impl Default for TemplateApp {
                     opening_hours: "24小时营业".to_string(),
                     phone: "03-1234-5678".to_string(),
                     tags: vec!["便利店".to_string(), "24小时".to_string()],
+                    symbol: '🏪',
                 },
                 Store {
                     id: "2".to_string(),
@@ -71,6 +72,7 @@ impl Default for TemplateApp {
                         "化妆品".to_string(),
                         "免税".to_string(),
                     ],
+                    symbol: '🏪',
                 },
                 Store {
                     id: "3".to_string(),
@@ -86,6 +88,7 @@ impl Default for TemplateApp {
                         "免税".to_string(),
                         "24小时".to_string(),
                     ],
+                    symbol: '🏪',
                 },
                 Store {
                     id: "4".to_string(),
@@ -101,6 +104,7 @@ impl Default for TemplateApp {
                         "服装".to_string(),
                         "家居".to_string(),
                     ],
+                    symbol: '🏪',
                 },
                 Store {
                     id: "5".to_string(),
@@ -112,6 +116,7 @@ impl Default for TemplateApp {
                     opening_hours: "10:00-21:00".to_string(),
                     phone: "03-5678-9012".to_string(),
                     tags: vec!["服装".to_string(), "时尚".to_string()],
+                    symbol: '🏪',
                 },
             ],
             search_text: String::new(),
@@ -189,7 +194,26 @@ impl TemplateApp {
         });
 
         ui.separator();
-
+        let filtered_stores: Vec<_> = self
+            .stores
+            .iter()
+            .filter(|store| {
+                let matches_search = self.search_text.is_empty()
+                    || store
+                        .name
+                        .to_lowercase()
+                        .contains(&self.search_text.to_lowercase())
+                    || store
+                        .address
+                        .to_lowercase()
+                        .contains(&self.search_text.to_lowercase())
+                    || store.tags.iter().any(|tag| {
+                        tag.to_lowercase()
+                            .contains(&self.search_text.to_lowercase())
+                    });
+                matches_search
+            })
+            .collect();
         ui.with_layout(
             egui::Layout::left_to_right(egui::Align::TOP).with_cross_justify(true),
             |ui| {
@@ -249,27 +273,6 @@ impl TemplateApp {
                                     });
                                 })
                                 .body(|mut body| {
-                                    let filtered_stores: Vec<_> = self
-                                        .stores
-                                        .iter()
-                                        .filter(|store| {
-                                            let matches_search = self.search_text.is_empty()
-                                                || store
-                                                    .name
-                                                    .to_lowercase()
-                                                    .contains(&self.search_text.to_lowercase())
-                                                || store
-                                                    .address
-                                                    .to_lowercase()
-                                                    .contains(&self.search_text.to_lowercase())
-                                                || store.tags.iter().any(|tag| {
-                                                    tag.to_lowercase()
-                                                        .contains(&self.search_text.to_lowercase())
-                                                });
-                                            matches_search
-                                        })
-                                        .collect();
-
                                     for store in filtered_stores.iter() {
                                         let is_selected =
                                             self.selected_store.as_ref() == Some(store);
@@ -313,19 +316,22 @@ impl TemplateApp {
                 egui::Window::new("地图").show(ui.ctx(), |ui| {
                     let store_pos =
                         Position::new(selected_store.longitude, selected_store.latitude);
-
+                    let places: Vec<Place> = filtered_stores
+                        .iter()
+                        .map(|store| Place {
+                            position: Position::new(store.longitude, store.latitude), // 假设 Store 结构体中有 position 字段
+                            label: store.name.clone(),
+                            symbol: store.symbol,
+                            style: Style::default(),
+                        })
+                        .collect();
                     if self.previous_store_id.as_ref() != Some(&selected_store.id) {
                         self.map_memory.center_at(store_pos);
                         self.previous_store_id = Some(selected_store.id.clone());
                     }
                     ui.add(
                         Map::new(Some(tiles.as_mut()), &mut self.map_memory, store_pos)
-                            .with_plugin(Places::new(vec![Place {
-                                position: store_pos,
-                                label: selected_store.name.clone(),
-                                symbol: '🏪',
-                                style: Style::default(),
-                            }])),
+                            .with_plugin(Places::new(places)),
                     );
                     // 在地图右上角添加控制按钮
                     let map_rect = ui.max_rect();
