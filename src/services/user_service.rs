@@ -1,7 +1,6 @@
 use crate::models::User;
 use crate::services::{ServiceError, ServiceResult};
-use anyhow::Result;
-use chrono::{DateTime, Utc};
+use chrono::Utc;
 use std::collections::HashMap;
 
 /// User service for managing user registration, authentication, and session management

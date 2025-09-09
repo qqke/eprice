@@ -1,6 +1,5 @@
 use crate::models::Store;
 use crate::services::{ServiceError, ServiceResult};
-use chrono::{DateTime, Utc};
 use std::collections::HashMap;
 
 /// Store service for managing store operations and business logic

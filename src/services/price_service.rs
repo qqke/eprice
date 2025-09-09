@@ -1,6 +1,5 @@
-use crate::models::{PriceRecord, Product, Store};
+use crate::models::PriceRecord;
 use crate::services::{ServiceError, ServiceResult};
-use anyhow::Result;
 use chrono::{DateTime, Utc};
 use std::collections::HashMap;
 

@@ -368,8 +368,8 @@ impl Default for BarcodeDecoder {
 /// Pattern information for different barcode types
 #[derive(Debug, Clone)]
 struct BarcodePattern {
-    name: String,
+    _name: String,
     validation_pattern: String,
-    typical_length: usize,
-    check_digit: bool,
+    _typical_length: usize,
+    _check_digit: bool,
 }
