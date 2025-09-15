@@ -8,6 +8,7 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 /// Price monitor for tracking price changes and triggering alerts
+#[allow(dead_code)]
 pub struct PriceMonitor {
     /// Active price alerts
     alerts: Arc<Mutex<HashMap<String, PriceAlert>>>,

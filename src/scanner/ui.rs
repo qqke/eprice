@@ -458,6 +458,7 @@ impl Default for ScannerUI {
 
 /// Scan history item
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 struct ScanHistoryItem {
     barcode: String,
     barcode_type: BarcodeType,
