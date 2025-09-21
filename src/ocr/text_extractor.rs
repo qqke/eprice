@@ -184,7 +184,7 @@ impl TextExtractionResult {
     pub fn get_low_confidence_words(&self, threshold: f32) -> Vec<String> {
         self.word_confidences
             .iter()
-            .filter(|(_, &confidence)| confidence < threshold)
+            .filter(|entry| *entry.1 < threshold)
             .map(|(word, _)| word.clone())
             .collect()
     }

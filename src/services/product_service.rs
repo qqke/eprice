@@ -68,6 +68,11 @@ impl ProductService {
         Ok(product)
     }
 
+    /// Get all products
+    pub fn get_all_products(&self) -> ServiceResult<Vec<Product>> {
+        Ok(self.products.values().cloned().collect())
+    }
+
     /// Get product by ID
     pub fn get_product(&self, product_id: &str) -> ServiceResult<Product> {
         self.products

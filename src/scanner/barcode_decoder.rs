@@ -1,5 +1,5 @@
-use crate::scanner::models::{BarcodeType, ScanResult};
 use crate::scanner::ScannerError;
+use crate::scanner::models::{BarcodeType, ScanResult};
 use anyhow::Result;
 use regex::Regex;
 use std::collections::HashMap;

@@ -1,7 +1,6 @@
 use crate::utils;
 use anyhow::Result;
-use sqlx::{sqlite::SqlitePool, sqlite::SqlitePoolOptions, Pool, Sqlite};
-use std::path::Path;
+use sqlx::{Pool, Sqlite, sqlite::SqlitePool, sqlite::SqlitePoolOptions};
 
 /// Database connection manager for SQLite
 pub struct DatabaseManager {

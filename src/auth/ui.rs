@@ -1,5 +1,5 @@
-use crate::auth::models::{LoginRequest, RegisterRequest};
 use crate::auth::SessionManager;
+use crate::auth::models::{LoginRequest, RegisterRequest};
 use crate::models::User;
 use egui;
 

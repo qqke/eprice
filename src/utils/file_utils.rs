@@ -20,6 +20,24 @@ pub fn get_app_data_dir() -> Result<PathBuf> {
     Ok(current_dir.join("data"))
 }
 
+/// Get the data directory for the application
+pub fn get_data_directory() -> Result<PathBuf> {
+    get_app_data_dir()
+}
+
+/// Initialize required directories for the application
+pub fn initialize_directories() -> Result<()> {
+    let data_dir = get_data_directory()?;
+    ensure_directory_exists(&data_dir)?;
+
+    // Create subdirectories
+    ensure_directory_exists(data_dir.join("images"))?;
+    ensure_directory_exists(data_dir.join("receipts"))?;
+    ensure_directory_exists(data_dir.join("cache"))?;
+
+    Ok(())
+}
+
 /// Save data to a file
 pub fn save_to_file<P: AsRef<Path>>(path: P, data: &[u8]) -> Result<()> {
     let path = path.as_ref();

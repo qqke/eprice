@@ -1,10 +1,10 @@
 pub mod monitor;
 pub mod notification;
-// pub mod ui; // TODO: Fix string encoding issues
+pub mod ui;
 
 pub use monitor::{MonitoringResult, PriceMonitor};
 pub use notification::{Notification, NotificationService, NotificationType};
-// pub use ui::AlertUI; // TODO: Fix string encoding issues
+pub use ui::AlertUI;
 
 use anyhow::Result;
 use thiserror::Error;

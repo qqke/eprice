@@ -1,0 +1,58 @@
+# Multi-stage build for WASM frontend
+FROM rust:1.75 as wasm-builder
+
+# Install wasm-pack
+RUN curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+
+# Install wasm32 target
+RUN rustup target add wasm32-unknown-unknown
+
+WORKDIR /app
+
+# Copy Cargo files
+COPY Cargo.toml Cargo.lock ./
+
+# Copy source code
+COPY src ./src
+
+# Build WASM package
+RUN wasm-pack build --target web --out-dir pkg
+
+# Node.js stage for web assets
+FROM node:18-alpine as web-builder
+
+WORKDIR /app
+
+# Copy package files
+COPY web/package*.json ./
+
+# Install dependencies
+RUN npm ci
+
+# Copy web source
+COPY web ./
+
+# Copy WASM build output
+COPY --from=wasm-builder /app/pkg ./src/pkg
+
+# Build web application
+RUN npm run build
+
+# Nginx stage for serving
+FROM nginx:alpine
+
+# Copy built assets
+COPY --from=web-builder /app/dist /usr/share/nginx/html
+
+# Copy nginx configuration
+COPY docker/nginx.conf /etc/nginx/nginx.conf
+
+# Expose port
+EXPOSE 80
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost/ || exit 1
+
+# Start nginx
+CMD ["nginx", "-g", "daemon off;"]

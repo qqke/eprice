@@ -83,6 +83,18 @@ impl PriceService {
         Ok(price_record.clone())
     }
 
+    /// Reset price record status to pending
+    pub fn reset_price_record_status(&mut self, price_id: &str) -> ServiceResult<PriceRecord> {
+        let price_record = self.price_records.get_mut(price_id).ok_or_else(|| {
+            ServiceError::NotFound(format!("Price record {} not found", price_id))
+        })?;
+
+        price_record.verification_status = "pending".to_string();
+
+        log::info!("Price record {} reset to pending", price_id);
+        Ok(price_record.clone())
+    }
+
     /// Get price records for a product
     pub fn get_product_prices(&self, product_id: &str) -> ServiceResult<Vec<PriceRecord>> {
         let prices: Vec<PriceRecord> = self

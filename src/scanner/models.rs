@@ -16,6 +16,7 @@ pub enum BarcodeType {
 
 #[derive(Debug, Clone)]
 pub struct CameraConfig {
+    pub camera_index: u32,
     pub width: u32,
     pub height: u32,
     pub fps: u32,
@@ -24,6 +25,7 @@ pub struct CameraConfig {
 impl Default for CameraConfig {
     fn default() -> Self {
         Self {
+            camera_index: 0,
             width: 640,
             height: 480,
             fps: 30,

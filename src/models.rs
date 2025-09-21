@@ -165,7 +165,7 @@ impl ReceiptItem {
 }
 
 /// 商品结构体，包含商品的基本信息和价格记录
-#[derive(Debug, Clone, Serialize, Deserialize /* , FromRow */)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq /* , FromRow */)]
 pub struct Product {
     pub id: String,              // 商品ID
     pub name: String,            // 商品名称
@@ -235,7 +235,7 @@ impl Product {
 }
 
 /// 价格记录结构体，包含价格信息和时间戳
-#[derive(Debug, Clone, Serialize, Deserialize /* , FromRow */)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq /* , FromRow */)]
 pub struct PriceRecord {
     pub id: Option<String>,         // 价格记录ID
     pub product_id: Option<String>, // 商品ID

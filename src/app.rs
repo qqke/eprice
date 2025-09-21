@@ -1,15 +1,15 @@
+use crate::alerts::AlertUI;
 use crate::auth::{AuthState, AuthUI};
 use crate::models::{PriceRecord, Product, Store};
-use crate::services::AppServices;
-// use crate::alerts::AlertUI; // TODO: Fix string encoding issues
 #[cfg(not(target_arch = "wasm32"))]
 use crate::scanner::ScannerUI;
+use crate::services::AppServices;
 use chrono::Utc;
 use eframe::egui;
 use walkers::{
-    extras::{Place, Places, Style},
-    sources::OpenStreetMap,
     HttpTiles, Map, MapMemory, Position, Tiles,
+    extras::{LabeledSymbol, LabeledSymbolStyle, Places, Symbol},
+    sources::OpenStreetMap,
 };
 
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
@@ -32,8 +32,8 @@ pub struct TemplateApp {
     selected_category: Option<String>,
     #[serde(skip)]
     auth_ui: AuthUI, // Authentication UI component
-    // #[serde(skip)]
-    // alert_ui: AlertUI, // Alert UI component - TODO: Fix string encoding issues
+    #[serde(skip)]
+    alert_ui: AlertUI, // Alert UI component
     #[cfg(not(target_arch = "wasm32"))]
     #[serde(skip)]
     scanner_ui: ScannerUI, // Scanner UI component
@@ -74,7 +74,7 @@ impl Default for TemplateApp {
             product_search_text: String::new(),
             selected_category: None,
             auth_ui: AuthUI::new(),
-            // alert_ui: AlertUI::new(), // TODO: Fix string encoding issues
+            alert_ui: AlertUI::new(),
             #[cfg(not(target_arch = "wasm32"))]
             scanner_ui: ScannerUI::new(),
             app_services: AppServices::new(),
@@ -211,9 +211,7 @@ impl TemplateApp {
             },
         ]
     }
-}
 
-impl TemplateApp {
     /// Called once before the first frame.
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         // 配置字体
@@ -233,12 +231,6 @@ impl TemplateApp {
 
         cc.egui_ctx.set_fonts(fonts);
 
-        // 加载上一次的应用状态（如果有）
-        // let mut app = if let Some(storage) = cc.storage {
-        //     eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default()
-        // } else {
-        //     Self::default()
-        // };
         let mut app = Self::default();
         // 初始化地图
         app.tiles = Some(Box::new(HttpTiles::new(OpenStreetMap, cc.egui_ctx.clone())));
@@ -251,8 +243,6 @@ impl TemplateApp {
 
     /// Initialize services with sample data
     fn initialize_services(&mut self) {
-        // Add sample data to services if they're empty
-
         // Add sample stores
         for store in &self.stores {
             let _ = self.app_services.store_service.create_store(
@@ -412,22 +402,24 @@ impl TemplateApp {
                 egui::Window::new("地图").show(ui.ctx(), |ui| {
                     let store_pos =
                         Position::new(selected_store.longitude, selected_store.latitude);
-                    let places: Vec<Place> = filtered_stores
-                        .iter()
-                        .map(|store| Place {
-                            position: Position::new(store.longitude, store.latitude), // 假设 Store 结构体中有 position 字段
-                            label: store.name.clone(),
-                            symbol: store.symbol,
-                            style: Style::default(),
-                        })
-                        .collect();
+                    let places = Places::new(
+                        filtered_stores
+                            .iter()
+                            .map(|store| LabeledSymbol {
+                                position: Position::new(store.longitude, store.latitude),
+                                label: store.name.clone(),
+                                symbol: Some(Symbol::Circle("🏪".to_string())),
+                                style: LabeledSymbolStyle::default(),
+                            })
+                            .collect(),
+                    );
                     if self.previous_store_id.as_ref() != Some(&selected_store.id) {
                         self.map_memory.center_at(store_pos);
                         self.previous_store_id = Some(selected_store.id.clone());
                     }
                     ui.add(
                         Map::new(Some(tiles.as_mut()), &mut self.map_memory, store_pos)
-                            .with_plugin(Places::new(places)),
+                            .with_plugin(places),
                     );
                     // 在地图右上角添加控制按钮
                     let map_rect = ui.max_rect();
@@ -727,7 +719,7 @@ impl eframe::App for TemplateApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         // 顶部导航栏
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
-            egui::menu::bar(ui, |ui| {
+            egui::MenuBar::new().ui(ui, |ui| {
                 ui.menu_button("文件", |ui| {
                     if ui.button("退出").clicked() {
                         ctx.send_viewport_cmd(egui::ViewportCommand::Close);
@@ -839,17 +831,22 @@ impl eframe::App for TemplateApp {
                 Tab::Scanner => {
                     self.scanner_ui.show(ctx, ui);
                 }
+                #[cfg(target_arch = "wasm32")]
+                Tab::Scanner => {
+                    ui.heading("Scanner");
+                    ui.label("Scanner functionality is only available on desktop platforms.");
+                }
                 Tab::Alerts => {
-                    // let current_user = self.auth_ui.get_current_user();
-                    // self.alert_ui.show(ctx, ui, current_user);
-                    ui.heading("Price Alerts");
-                    ui.label("Price alert functionality implemented but UI temporarily disabled due to encoding issues.");
-                    ui.label("Core alert monitoring and notification system is fully functional.");
+                    if let Some(current_user) = self.auth_ui.get_current_user() {
+                        self.alert_ui.show(ui, &current_user.id);
+                    } else {
+                        ui.heading("价格提醒");
+                        ui.colored_label(egui::Color32::YELLOW, "请先登录以使用价格提醒功能");
+                        ui.label("登录后您可以设置价格提醒，当商品价格达到您设定的目标价格时会收到通知。");
+                    }
                 }
                 Tab::Trends => {
-                    ui.heading("价格趋势分析");
-                    ui.label("商品价格历史走势");
-                    // TODO: 添加价格趋势图表
+                    self.render_trends_tab(ui);
                 }
                 Tab::Community => {
                     self.render_community_tab(ui);
@@ -864,5 +861,355 @@ impl eframe::App for TemplateApp {
 
         // Render authentication UI
         self.auth_ui.show_auth_dialog(ctx);
+    }
+}
+
+impl TemplateApp {
+    /// Render the trends tab with price visualization
+    fn render_trends_tab(&mut self, ui: &mut egui::Ui) {
+        ui.heading("价格趋势分析");
+        ui.label("商品价格历史走势分析");
+        ui.separator();
+
+        // Product selection for trend analysis
+        ui.horizontal(|ui| {
+            ui.label("选择商品:");
+            egui::ComboBox::from_label("")
+                .selected_text(
+                    self.selected_product
+                        .as_ref()
+                        .map(|p| p.name.clone())
+                        .unwrap_or_else(|| "请选择商品".to_string()),
+                )
+                .show_ui(ui, |ui| {
+                    ui.selectable_value(&mut self.selected_product, None, "无选择");
+                    for product in &self.products {
+                        ui.selectable_value(
+                            &mut self.selected_product,
+                            Some(product.clone()),
+                            &product.name,
+                        );
+                    }
+                });
+        });
+
+        ui.separator();
+
+        if let Some(selected_product) = &self.selected_product {
+            self.render_price_trends_for_product(ui, selected_product);
+        } else {
+            ui.label("请选择一个商品以查看价格趋势");
+
+            // Show general market trends when no product is selected
+            self.render_market_overview(ui);
+        }
+    }
+
+    /// Render price trends for a specific product
+    fn render_price_trends_for_product(&self, ui: &mut egui::Ui, product: &Product) {
+        ui.heading(format!("{}的价格趋势", product.name));
+
+        // Price statistics
+        ui.horizontal(|ui| {
+            ui.vertical(|ui| {
+                ui.label("价格统计");
+
+                if let Ok(stats) = self
+                    .app_services
+                    .price_service
+                    .get_price_statistics(&product.id)
+                {
+                    ui.label(format!("最低价: ¥{:.2}", stats.min_price));
+                    ui.label(format!("最高价: ¥{:.2}", stats.max_price));
+                    ui.label(format!("平均价: ¥{:.2}", stats.avg_price));
+                    ui.label(format!("中位数: ¥{:.2}", stats.median_price));
+                    ui.label(format!("价格记录数: {}", stats.total_records));
+                    ui.label(format!("覆盖店铺数: {}", stats.stores_count));
+                    ui.label(format!("促销比例: {:.1}%", stats.sale_percentage));
+                } else {
+                    ui.label("暂无价格统计数据");
+                }
+            });
+
+            ui.separator();
+
+            ui.vertical(|ui| {
+                ui.label("价格历史");
+
+                // Simple text-based price history visualization
+                let mut prices: Vec<_> = product.prices.iter().collect();
+                prices.sort_by_key(|p| p.timestamp);
+
+                if prices.is_empty() {
+                    ui.label("暂无价格数据");
+                } else {
+                    // Calculate price change
+                    let first_price = prices.first().unwrap().price;
+                    let last_price = prices.last().unwrap().price;
+                    let price_change = last_price - first_price;
+                    let price_change_percent = (price_change / first_price) * 100.0;
+
+                    ui.label(format!(
+                        "价格变化: ¥{:.2} ({:+.1}%)",
+                        price_change, price_change_percent
+                    ));
+
+                    let trend_color = if price_change > 0.0 {
+                        egui::Color32::RED
+                    } else if price_change < 0.0 {
+                        egui::Color32::GREEN
+                    } else {
+                        egui::Color32::GRAY
+                    };
+
+                    let trend_text = if price_change > 0.0 {
+                        "↗ 上涨趋势"
+                    } else if price_change < 0.0 {
+                        "↘ 下降趋势"
+                    } else {
+                        "→ 价格稳定"
+                    };
+
+                    ui.colored_label(trend_color, trend_text);
+                }
+            });
+        });
+
+        ui.separator();
+
+        // Price history chart (simplified visualization)
+        self.render_price_chart(ui, product);
+
+        ui.separator();
+
+        // Store-wise price comparison
+        self.render_store_price_comparison(ui, product);
+    }
+
+    /// Render a simple price chart using egui
+    fn render_price_chart(&self, ui: &mut egui::Ui, product: &Product) {
+        ui.label("价格走势图");
+
+        let mut prices: Vec<_> = product.prices.iter().collect();
+        prices.sort_by_key(|p| p.timestamp);
+
+        if prices.is_empty() {
+            ui.label("暂无数据可显示");
+            return;
+        }
+
+        // Create a simple line chart
+        let chart_rect = ui.available_rect_before_wrap();
+        let chart_rect =
+            egui::Rect::from_min_size(chart_rect.min, egui::vec2(chart_rect.width(), 200.0));
+
+        ui.allocate_rect(chart_rect, egui::Sense::hover());
+
+        let painter = ui.ctx().layer_painter(egui::LayerId::new(
+            egui::Order::Background,
+            egui::Id::new("price_chart"),
+        ));
+
+        // Draw chart background
+        painter.rect_filled(
+            chart_rect,
+            egui::CornerRadius::same(4),
+            egui::Color32::from_rgb(240, 240, 240),
+        );
+
+        if prices.len() > 1 {
+            let min_price = prices.iter().map(|p| p.price).fold(f64::INFINITY, f64::min);
+            let max_price = prices
+                .iter()
+                .map(|p| p.price)
+                .fold(f64::NEG_INFINITY, f64::max);
+            let price_range = (max_price - min_price).max(0.01); // Avoid division by zero
+
+            // Draw price line
+            let points: Vec<egui::Pos2> = prices
+                .iter()
+                .enumerate()
+                .map(|(i, price_record)| {
+                    let x = chart_rect.min.x
+                        + (i as f32 / (prices.len() - 1) as f32) * chart_rect.width();
+                    let y = chart_rect.max.y
+                        - ((price_record.price - min_price) / price_range) as f32
+                            * chart_rect.height();
+                    egui::pos2(x, y)
+                })
+                .collect();
+
+            // Draw the price line
+            for i in 1..points.len() {
+                painter.line_segment(
+                    [points[i - 1], points[i]],
+                    egui::Stroke::new(2.0, egui::Color32::BLUE),
+                );
+            }
+
+            // Draw price points
+            for (i, point) in points.iter().enumerate() {
+                let color = if prices[i].is_on_sale {
+                    egui::Color32::RED // Red for sale prices
+                } else {
+                    egui::Color32::BLUE // Blue for regular prices
+                };
+
+                painter.circle_filled(*point, 3.0, color);
+            }
+
+            // Draw price labels
+            painter.text(
+                egui::pos2(chart_rect.min.x + 5.0, chart_rect.min.y + 5.0),
+                egui::Align2::LEFT_TOP,
+                format!("最高: ¥{:.2}", max_price),
+                egui::FontId::default(),
+                egui::Color32::BLACK,
+            );
+
+            painter.text(
+                egui::pos2(chart_rect.min.x + 5.0, chart_rect.max.y - 20.0),
+                egui::Align2::LEFT_BOTTOM,
+                format!("最低: ¥{:.2}", min_price),
+                egui::FontId::default(),
+                egui::Color32::BLACK,
+            );
+        }
+
+        ui.allocate_space(egui::vec2(0.0, 200.0)); // Reserve space for the chart
+    }
+
+    /// Render store-wise price comparison
+    fn render_store_price_comparison(&self, ui: &mut egui::Ui, product: &Product) {
+        ui.label("各店铺价格对比");
+
+        let mut store_prices: std::collections::HashMap<String, Vec<&PriceRecord>> =
+            std::collections::HashMap::new();
+
+        for price in &product.prices {
+            store_prices
+                .entry(price.store_id.clone())
+                .or_default()
+                .push(price);
+        }
+
+        if store_prices.is_empty() {
+            ui.label("暂无价格数据");
+            return;
+        }
+
+        egui::ScrollArea::vertical().show(ui, |ui| {
+            for (store_id, prices) in store_prices {
+                let store_name = self
+                    .stores
+                    .iter()
+                    .find(|s| s.id == store_id)
+                    .map(|s| s.name.clone())
+                    .unwrap_or_else(|| format!("未知店铺 ({})", store_id));
+
+                // Get the latest price for this store
+                let latest_price = prices.iter().max_by_key(|p| p.timestamp).unwrap();
+
+                ui.group(|ui| {
+                    ui.horizontal(|ui| {
+                        ui.vertical(|ui| {
+                            ui.label(&store_name);
+                            ui.label(format!("当前价格: ¥{:.2}", latest_price.price));
+                            if latest_price.is_on_sale {
+                                ui.colored_label(egui::Color32::RED, "[促销中]");
+                            }
+                            ui.label(format!(
+                                "更新时间: {}",
+                                latest_price.timestamp.format("%Y-%m-%d %H:%M")
+                            ));
+                        });
+
+                        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                            ui.label(format!("{} 条记录", prices.len()));
+                        });
+                    });
+                });
+            }
+        });
+    }
+
+    /// Render market overview when no specific product is selected
+    fn render_market_overview(&self, ui: &mut egui::Ui) {
+        ui.separator();
+        ui.heading("市场概览");
+
+        ui.horizontal(|ui| {
+            ui.vertical(|ui| {
+                ui.label("热门商品");
+
+                // Show trending products
+                if let Ok(trending) = self.app_services.price_service.get_trending_prices(5) {
+                    for trend in trending {
+                        ui.group(|ui| {
+                            if let Some(product) =
+                                self.products.iter().find(|p| p.id == trend.product_id)
+                            {
+                                ui.horizontal(|ui| {
+                                    ui.label(&product.name);
+                                    ui.with_layout(
+                                        egui::Layout::right_to_left(egui::Align::Center),
+                                        |ui| {
+                                            ui.label(format!("¥{:.2}", trend.latest_price));
+                                            ui.label(format!("({} 次更新)", trend.activity_count));
+                                        },
+                                    );
+                                });
+                            }
+                        });
+                    }
+                } else {
+                    ui.label("暂无热门商品数据");
+                }
+            });
+
+            ui.separator();
+
+            ui.vertical(|ui| {
+                ui.label("价格动态");
+
+                // Show recent price changes
+                let mut all_prices: Vec<&PriceRecord> =
+                    self.products.iter().flat_map(|p| &p.prices).collect();
+
+                all_prices.sort_by_key(|p| std::cmp::Reverse(p.timestamp));
+                all_prices.truncate(5);
+
+                for price in all_prices {
+                    if let Some(product) = self
+                        .products
+                        .iter()
+                        .find(|p| p.id == *price.product_id.as_ref().unwrap_or(&String::new()))
+                    {
+                        let store_name = self
+                            .stores
+                            .iter()
+                            .find(|s| s.id == price.store_id)
+                            .map(|s| s.name.clone())
+                            .unwrap_or_else(|| "未知店铺".to_string());
+
+                        ui.group(|ui| {
+                            ui.horizontal(|ui| {
+                                ui.vertical(|ui| {
+                                    ui.label(&product.name);
+                                    ui.label(&store_name);
+                                });
+                                ui.with_layout(
+                                    egui::Layout::right_to_left(egui::Align::Center),
+                                    |ui| {
+                                        ui.label(format!("¥{:.2}", price.price));
+                                        ui.label(price.timestamp.format("%m-%d %H:%M").to_string());
+                                    },
+                                );
+                            });
+                        });
+                    }
+                }
+            });
+        });
     }
 }

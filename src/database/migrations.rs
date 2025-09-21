@@ -1,5 +1,5 @@
 use anyhow::Result;
-use sqlx::{migrate::Migrator, Pool, Sqlite};
+use sqlx::{Pool, Sqlite};
 
 /// Run database migrations
 pub async fn run_migrations(pool: &Pool<Sqlite>) -> Result<()> {

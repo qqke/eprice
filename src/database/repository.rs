@@ -1,11 +1,10 @@
-use crate::models::{
-    OcrResult, PriceAlert, PriceRecord, Product, ReceiptItem, Store, User, UserReview,
-};
+use crate::models::{PriceRecord, Product, Store, User};
 use anyhow::Result;
 use chrono::{DateTime, Utc};
 use sqlx::{Pool, Row, Sqlite};
 
 /// Generic repository trait for common database operations
+#[allow(async_fn_in_trait)]
 pub trait Repository<T> {
     async fn create(&self, entity: &T) -> Result<()>;
     async fn find_by_id(&self, id: &str) -> Result<Option<T>>;
