@@ -340,10 +340,7 @@ impl SearchEngine {
         // Convert to products (this would use actual product service in real implementation)
         let products: Vec<(Product, f32)> = product_scores
             .into_iter()
-            .filter_map(|(id, score)| {
-                // This is placeholder - would fetch actual products
-                Some((self.create_mock_product(&id), score))
-            })
+            .map(|(id, score)| (self.create_mock_product(&id), score))
             .collect();
 
         Ok(products)

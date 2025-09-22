@@ -56,7 +56,7 @@ impl TextExtractor {
 
         Ok(TextExtractionResult {
             text: mock_text.clone(),
-            confidence: confidence,
+            confidence,
             language_detected: self.language.clone(),
             word_confidences: self.generate_mock_word_confidences(&mock_text),
             line_count: mock_text.lines().count(),

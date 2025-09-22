@@ -302,6 +302,7 @@ pub struct Store {
 
 impl Store {
     /// Create a new store with generated ID and current timestamp
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         name: String,
         address: String,

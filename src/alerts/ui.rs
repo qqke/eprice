@@ -247,10 +247,8 @@ impl AlertUI {
             if let Err(e) = self.alert_service.stop_monitoring() {
                 self.error_message = Some(format!("停止监控失败: {}", e));
             }
-        } else {
-            if let Err(e) = self.alert_service.start_monitoring() {
-                self.error_message = Some(format!("启动监控失败: {}", e));
-            }
+        } else if let Err(e) = self.alert_service.start_monitoring() {
+            self.error_message = Some(format!("启动监控失败: {}", e));
         }
     }
 

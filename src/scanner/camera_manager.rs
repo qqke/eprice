@@ -11,8 +11,6 @@ use std::time::{Duration, Instant};
 /// Camera manager for handling camera operations and frame capture
 pub struct CameraManager {
     config: CameraConfig,
-    #[allow(dead_code)]
-    camera: Arc<Mutex<Option<Camera>>>,
     is_running: Arc<Mutex<bool>>,
     current_frame: Arc<Mutex<Option<Vec<u8>>>>,
     last_capture_time: Arc<Mutex<Instant>>,
@@ -22,7 +20,6 @@ impl CameraManager {
     pub fn new() -> Self {
         Self {
             config: CameraConfig::default(),
-            camera: Arc::new(Mutex::new(None)),
             is_running: Arc::new(Mutex::new(false)),
             current_frame: Arc::new(Mutex::new(None)),
             last_capture_time: Arc::new(Mutex::new(Instant::now())),
@@ -32,7 +29,6 @@ impl CameraManager {
     pub fn with_config(config: CameraConfig) -> Self {
         Self {
             config,
-            camera: Arc::new(Mutex::new(None)),
             is_running: Arc::new(Mutex::new(false)),
             current_frame: Arc::new(Mutex::new(None)),
             last_capture_time: Arc::new(Mutex::new(Instant::now())),

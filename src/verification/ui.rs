@@ -293,13 +293,13 @@ impl VerificationUI {
                                         "pending" => {
                                             if ui.small_button("✓").clicked() {
                                                 self.verify_single_record(
-                                                    &record.id.as_ref().unwrap(),
+                                                    record.id.as_ref().unwrap(),
                                                     app_services,
                                                 );
                                             }
                                             if ui.small_button("✗").clicked() {
                                                 self.reject_single_record(
-                                                    &record.id.as_ref().unwrap(),
+                                                    record.id.as_ref().unwrap(),
                                                     app_services,
                                                 );
                                             }
@@ -307,7 +307,7 @@ impl VerificationUI {
                                         "verified" | "rejected" => {
                                             if ui.small_button("↻").clicked() {
                                                 self.reset_single_record(
-                                                    &record.id.as_ref().unwrap(),
+                                                    record.id.as_ref().unwrap(),
                                                     app_services,
                                                 );
                                             }

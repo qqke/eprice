@@ -126,7 +126,7 @@ impl ProductMatcher {
         }
 
         // QR Code - can be any reasonable length
-        if barcode.len() >= 1 && barcode.len() <= 1000 {
+        if !barcode.is_empty() && barcode.len() <= 1000 {
             return true;
         }
 
@@ -146,8 +146,8 @@ impl ProductMatcher {
         }
 
         let mut sum = 0;
-        for i in 0..12 {
-            sum += if i % 2 == 0 { digits[i] } else { digits[i] * 3 };
+        for (i, digit) in digits.iter().enumerate().take(12) {
+            sum += if i % 2 == 0 { *digit } else { *digit * 3 };
         }
 
         let check_digit = (10 - (sum % 10)) % 10;
@@ -167,8 +167,8 @@ impl ProductMatcher {
         }
 
         let mut sum = 0;
-        for i in 0..7 {
-            sum += if i % 2 == 0 { digits[i] * 3 } else { digits[i] };
+        for (i, digit) in digits.iter().enumerate().take(7) {
+            sum += if i % 2 == 0 { *digit * 3 } else { *digit };
         }
 
         let check_digit = (10 - (sum % 10)) % 10;
@@ -210,9 +210,9 @@ impl ProductMatcher {
                 }
             }
             BarcodeType::Code128 => {
-                if barcode.starts_with("PROD") {
+                if let Some(stripped) = barcode.strip_prefix("PROD") {
                     (
-                        format!("Product {}", &barcode[4..]),
+                        format!("Product {}", stripped),
                         "Manufactured".to_string(),
                         250.0,
                     )

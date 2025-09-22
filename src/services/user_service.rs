@@ -368,7 +368,7 @@ impl UserService {
     fn verify_password(&self, password: &str, hash: &str) -> ServiceResult<bool> {
         // In a real app, use bcrypt verification
         // For now, simple mock verification
-        Ok(hash == &format!("hashed_{}", password))
+        Ok(hash == format!("hashed_{}", password))
     }
 
     fn create_session_token(&self) -> String {

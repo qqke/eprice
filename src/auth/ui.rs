@@ -19,6 +19,7 @@ impl Default for AuthState {
 }
 
 /// Authentication UI component
+#[derive(Default)]
 pub struct AuthUI {
     pub auth_state: AuthState,
     pub session_manager: SessionManager,
@@ -41,25 +42,7 @@ pub struct AuthUI {
     pub show_auth_window: bool,
 }
 
-impl Default for AuthUI {
-    fn default() -> Self {
-        Self {
-            auth_state: AuthState::default(),
-            session_manager: SessionManager::new(),
-            current_session_id: None,
-            login_email: String::new(),
-            login_password: String::new(),
-            login_remember_me: false,
-            login_error: None,
-            register_username: String::new(),
-            register_email: String::new(),
-            register_password: String::new(),
-            register_password_confirm: String::new(),
-            register_error: None,
-            show_auth_window: false,
-        }
-    }
-}
+// Default derive already provided
 
 impl AuthUI {
     pub fn new() -> Self {

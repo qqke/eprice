@@ -245,7 +245,7 @@ impl BarcodeDecoder {
                 let avg = window.iter().map(|&b| b as u32).sum::<u32>() / 10;
                 let variance: u32 = window
                     .iter()
-                    .map(|&b| (b as i32 - avg as i32).abs() as u32)
+                    .map(|&b| (b as i32 - avg as i32).unsigned_abs())
                     .sum();
 
                 // High variance might indicate barcode lines
@@ -329,7 +329,7 @@ impl BarcodeDecoder {
 
         let mut differences = 0u32;
         for window in image_data.windows(2) {
-            differences += (window[0] as i32 - window[1] as i32).abs() as u32;
+            differences += (window[0] as i32 - window[1] as i32).unsigned_abs();
         }
 
         let avg_difference = differences as f32 / (image_data.len() - 1) as f32;

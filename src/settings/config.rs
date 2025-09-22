@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 /// Application configuration settings
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct AppConfig {
     pub ui_settings: UISettings,
     pub notification_settings: NotificationSettings,
@@ -51,16 +51,7 @@ pub struct DataSettings {
     pub data_retention_days: u32,
 }
 
-impl Default for AppConfig {
-    fn default() -> Self {
-        Self {
-            ui_settings: UISettings::default(),
-            notification_settings: NotificationSettings::default(),
-            monitoring_settings: MonitoringSettings::default(),
-            data_settings: DataSettings::default(),
-        }
-    }
-}
+// (removed duplicate AppConfig redefinition)
 
 impl Default for UISettings {
     fn default() -> Self {

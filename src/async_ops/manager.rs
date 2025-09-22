@@ -340,7 +340,7 @@ impl AsyncManager {
         // Remove old completed operations
         operations.retain(|_, op| {
             op.completed_at
-                .map_or(true, |completed_at| completed_at > cutoff_time)
+                .is_none_or(|completed_at| completed_at > cutoff_time)
         });
 
         // Clean up results
@@ -485,10 +485,10 @@ impl AsyncManager {
             if operation
                 .dependencies
                 .contains(&completed_operation_id.to_string())
+                && self.are_dependencies_satisfied(id)
+                && !queue.contains(id)
             {
-                if self.are_dependencies_satisfied(id) && !queue.contains(id) {
-                    queue.push_back(id.clone());
-                }
+                queue.push_back(id.clone());
             }
         }
 

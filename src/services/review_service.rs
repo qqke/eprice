@@ -356,7 +356,7 @@ impl ReviewService {
     }
 
     fn validate_rating(&self, rating: i32) -> ServiceResult<()> {
-        if rating < 1 || rating > 5 {
+        if !(1..=5).contains(&rating) {
             return Err(ServiceError::ValidationError(
                 "Rating must be between 1 and 5".to_string(),
             ));

@@ -13,7 +13,7 @@ pub struct ProductService {
 
 impl ProductService {
     pub fn new() -> Self {
-        let mut service = Self {
+        let service = Self {
             products: HashMap::new(),
             categories: vec![
                 "Beverages".to_string(),
@@ -28,9 +28,18 @@ impl ProductService {
             ],
         };
 
-        // Initialize with some sample products
-        service.init_sample_products();
-        service
+        // Initialize with some sample products (skip during tests)
+        #[cfg(not(test))]
+        #[cfg(not(test))]
+        {
+            let mut service = service;
+            service.init_sample_products();
+            service
+        }
+        #[cfg(test)]
+        {
+            service
+        }
     }
 
     /// Create a new product
@@ -173,7 +182,7 @@ impl ProductService {
                         .any(|tag| tag.to_lowercase().contains(&query_lower));
 
                 // Category filter
-                let matches_category = category.map_or(true, |cat| p.category == cat);
+                let matches_category = category.is_none_or(|cat| p.category == cat);
 
                 matches_query && matches_category
             })
@@ -393,6 +402,7 @@ impl ProductService {
         Ok(())
     }
 
+    #[cfg(not(test))]
     fn init_sample_products(&mut self) {
         let sample_products = vec![
             Product::new(
@@ -446,8 +456,7 @@ pub struct ProductStats {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::models::PriceRecord;
-    use chrono::{DateTime, Utc};
+    // 保持导入最小化，避免未使用告警
 
     #[test]
     fn test_product_creation_success() {

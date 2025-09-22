@@ -102,13 +102,11 @@ impl SessionManager {
             self.sessions.remove(session_id);
             log::info!("Session expired and removed: {}", session_id);
             None
+        } else if let Some(session) = self.sessions.get_mut(session_id) {
+            session.update_activity();
+            Some(&session.user)
         } else {
-            if let Some(session) = self.sessions.get_mut(session_id) {
-                session.update_activity();
-                Some(&session.user)
-            } else {
-                None
-            }
+            None
         }
     }
 

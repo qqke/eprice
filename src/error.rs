@@ -216,19 +216,19 @@ impl std::error::Error for ContextualError {
 
 /// Trait for adding context to errors
 pub trait ErrorExt<T> {
-    fn with_context(self, context: ErrorContext) -> Result<T, ContextualError>;
-    fn with_operation(self, operation: impl Into<String>) -> Result<T, ContextualError>;
+    fn with_context(self, context: ErrorContext) -> Result<T, Box<ContextualError>>;
+    fn with_operation(self, operation: impl Into<String>) -> Result<T, Box<ContextualError>>;
 }
 
 impl<T, E> ErrorExt<T> for Result<T, E>
 where
     E: Into<AppError>,
 {
-    fn with_context(self, context: ErrorContext) -> Result<T, ContextualError> {
-        self.map_err(|e| ContextualError::new(e.into(), context))
+    fn with_context(self, context: ErrorContext) -> Result<T, Box<ContextualError>> {
+        self.map_err(|e| Box::new(ContextualError::new(e.into(), context)))
     }
 
-    fn with_operation(self, operation: impl Into<String>) -> Result<T, ContextualError> {
+    fn with_operation(self, operation: impl Into<String>) -> Result<T, Box<ContextualError>> {
         self.with_context(ErrorContext::new(operation))
     }
 }

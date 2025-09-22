@@ -231,9 +231,11 @@ impl TemplateApp {
 
         cc.egui_ctx.set_fonts(fonts);
 
-        let mut app = Self::default();
-        // 初始化地图
-        app.tiles = Some(Box::new(HttpTiles::new(OpenStreetMap, cc.egui_ctx.clone())));
+        // 使用带默认值的结构体更新，避免后续字段再赋值
+        let mut app = Self {
+            tiles: Some(Box::new(HttpTiles::new(OpenStreetMap, cc.egui_ctx.clone()))),
+            ..Self::default()
+        };
 
         // Initialize services with sample data
         app.initialize_services();
@@ -284,7 +286,7 @@ impl TemplateApp {
             .stores
             .iter()
             .filter(|store| {
-                let matches_search = self.search_text.is_empty()
+                self.search_text.is_empty()
                     || store
                         .name
                         .to_lowercase()
@@ -296,8 +298,7 @@ impl TemplateApp {
                     || store.tags.iter().any(|tag| {
                         tag.to_lowercase()
                             .contains(&self.search_text.to_lowercase())
-                    });
-                matches_search
+                    })
             })
             .collect();
         ui.with_layout(
@@ -519,7 +520,7 @@ impl TemplateApp {
                     let matches_category = self
                         .selected_category
                         .as_ref()
-                        .map_or(true, |c| p.category == *c);
+                        .is_none_or(|c| p.category == *c);
 
                     matches_search && matches_category
                 })

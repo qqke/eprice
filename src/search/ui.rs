@@ -586,9 +586,10 @@ impl AdvancedSearchUI {
                 name: "On Sale".to_string(),
                 description: "Products currently on sale".to_string(),
                 filters: {
-                    let mut filters = SearchFilters::default();
-                    filters.promotion_filter = PromotionFilter::OnSale;
-                    filters
+                    SearchFilters {
+                        promotion_filter: PromotionFilter::OnSale,
+                        ..SearchFilters::default()
+                    }
                 },
                 icon: "🏷️".to_string(),
             },

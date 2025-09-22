@@ -125,15 +125,16 @@ pub struct AsyncOperation {
     pub metadata: OperationMetadata,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Default)]
 pub enum OperationPriority {
     Low = 0,
+    #[default]
     Normal = 1,
     High = 2,
     Critical = 3,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct OperationMetadata {
     pub user_id: Option<String>,
     pub session_id: Option<String>,
@@ -290,10 +291,9 @@ impl AsyncOperation {
     pub fn duration_seconds(&self) -> Option<i64> {
         if let (Some(started), Some(completed)) = (self.started_at, self.completed_at) {
             Some(completed.signed_duration_since(started).num_seconds())
-        } else if let Some(started) = self.started_at {
-            Some(Utc::now().signed_duration_since(started).num_seconds())
         } else {
-            None
+            self.started_at
+                .map(|started| Utc::now().signed_duration_since(started).num_seconds())
         }
     }
 
@@ -337,23 +337,7 @@ impl AsyncOperation {
     }
 }
 
-impl Default for OperationMetadata {
-    fn default() -> Self {
-        Self {
-            user_id: None,
-            session_id: None,
-            request_id: None,
-            tags: Vec::new(),
-            context: std::collections::HashMap::new(),
-        }
-    }
-}
-
-impl Default for OperationPriority {
-    fn default() -> Self {
-        OperationPriority::Normal
-    }
-}
+// (removed duplicate OperationMetadata and OperationPriority definitions)
 
 /// Factory for creating common operation types
 pub struct OperationFactory;

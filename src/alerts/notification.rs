@@ -35,7 +35,7 @@ impl NotificationService {
             id: uuid::Uuid::new_v4().to_string(),
             user_id: user.id.clone(),
             notification_type: NotificationType::PriceAlert,
-            title: format!("Price Alert: Target Reached!"),
+            title: "Price Alert: Target Reached!".to_string(),
             message: format!(
                 "Your price alert for product {} has been triggered! Current price: ¥{:.2}, Target: ¥{:.2}",
                 alert.product_id, current_price, alert.target_price

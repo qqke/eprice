@@ -151,14 +151,15 @@ impl Default for PriceRange {
 impl SearchFilters {
     /// Create a new filter set with basic price range
     pub fn with_price_range(min_price: Option<f64>, max_price: Option<f64>) -> Self {
-        let mut filters = Self::default();
-        filters.price_range = Some(PriceRange {
-            min_price,
-            max_price,
-            include_sale_prices: true,
-            currency: "CNY".to_string(),
-        });
-        filters
+        Self {
+            price_range: Some(PriceRange {
+                min_price,
+                max_price,
+                include_sale_prices: true,
+                currency: "CNY".to_string(),
+            }),
+            ..Self::default()
+        }
     }
 
     /// Add category filter

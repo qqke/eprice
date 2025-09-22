@@ -520,7 +520,7 @@ impl ScannerUI {
                 let can_scan = !self.is_scanning
                     && self
                         .last_scan_time
-                        .map_or(true, |t| t.elapsed() >= self.scan_cooldown);
+                        .is_none_or(|t| t.elapsed() >= self.scan_cooldown);
 
                 if ui
                     .add_enabled(can_scan, egui::Button::new("📷 Scan Now"))
@@ -730,7 +730,7 @@ impl ScannerUI {
         if self.is_scanning && self.scanner_service.is_camera_running() {
             let can_scan = self
                 .last_scan_time
-                .map_or(true, |t| t.elapsed() >= self.scan_cooldown);
+                .is_none_or(|t| t.elapsed() >= self.scan_cooldown);
 
             if can_scan {
                 self.perform_scan();

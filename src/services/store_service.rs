@@ -20,6 +20,7 @@ impl StoreService {
     }
 
     /// Create a new store
+    #[allow(clippy::too_many_arguments)]
     pub fn create_store(
         &mut self,
         name: String,
@@ -62,6 +63,7 @@ impl StoreService {
     }
 
     /// Update store information
+    #[allow(clippy::too_many_arguments)]
     pub fn update_store(
         &mut self,
         store_id: &str,
@@ -229,7 +231,7 @@ impl StoreService {
             .get_mut(store_id)
             .ok_or_else(|| ServiceError::NotFound(format!("Store {} not found", store_id)))?;
 
-        if new_rating < 0.0 || new_rating > 5.0 {
+        if !(0.0..=5.0).contains(&new_rating) {
             return Err(ServiceError::ValidationError(
                 "Rating must be between 0 and 5".to_string(),
             ));
@@ -343,13 +345,13 @@ impl StoreService {
     }
 
     fn validate_coordinates(&self, latitude: f64, longitude: f64) -> ServiceResult<()> {
-        if latitude < -90.0 || latitude > 90.0 {
+        if !(-90.0..=90.0).contains(&latitude) {
             return Err(ServiceError::ValidationError(
                 "Invalid latitude".to_string(),
             ));
         }
 
-        if longitude < -180.0 || longitude > 180.0 {
+        if !(-180.0..=180.0).contains(&longitude) {
             return Err(ServiceError::ValidationError(
                 "Invalid longitude".to_string(),
             ));
