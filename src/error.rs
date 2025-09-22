@@ -75,6 +75,7 @@ impl From<crate::alerts::AlertError> for AppError {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 impl From<sqlx::Error> for AppError {
     fn from(error: sqlx::Error) -> Self {
         AppError::Database(error.to_string())

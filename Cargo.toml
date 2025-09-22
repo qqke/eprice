@@ -29,9 +29,7 @@ geo = { version = "0.31.0", features = ["use-serde"] }
 chrono = { version = "0.4.40", features = ["serde"] }
 egui_extras = "0.32.3"
 
-# Database and authentication
-sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "sqlite", "chrono", "uuid"] }
-tokio = { version = "1.0", features = ["full"] }
+# Database and authentication (native-only; wasm 构建不需要)
 bcrypt = "0.15"
 uuid = { version = "1.0", features = ["v4", "serde", "js"] }
 
@@ -60,11 +58,16 @@ env_logger = "0.11"
 # Additional native dependencies for file operations, camera access
 rfd = "0.15"  # For file dialogs
 nokhwa = { version = "0.10", features = ["input-msmf"] }  # For camera access (barcode scanning)
+sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "sqlite", "chrono", "uuid"] }
+tokio = { version = "1.0", features = ["full"] }
 
 # web:
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen-futures = "0.4"
 web-sys = "0.3.70"           # to access the DOM (to hide the loading text)
+# 为不同主版本的 getrandom 启用 wasm 支持（有些间接依赖仍在用 0.2）
+getrandom = { version = "0.3", features = ["wasm_js"] }
+getrandom02 = { package = "getrandom", version = "0.2", features = ["js"] }
 
 [profile.release]
 opt-level = 2 # fast and small wasm
