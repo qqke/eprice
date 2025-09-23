@@ -1,4 +1,4 @@
-use eprice::models::*;
+use chrono::TimeZone;
 use eprice::utils::*;
 
 #[test]

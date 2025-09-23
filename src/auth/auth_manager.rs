@@ -1,10 +1,8 @@
 use crate::auth::models::{LoginRequest, RegisterRequest, User};
 use crate::auth::{AuthError, AuthResult};
-use crate::database::UserRepository;
-use crate::utils::{
-    hash_password, validate_email, validate_password, validate_username, verify_password,
-};
-use anyhow::Result;
+use crate::database::{UserRepository, repository::Repository};
+use crate::utils::crypto::{hash_password, verify_password};
+use crate::utils::{validate_email, validate_password, validate_username};
 use sqlx::Pool;
 use sqlx::Sqlite;
 
@@ -24,9 +22,7 @@ impl AuthManager {
     /// Register a new user
     pub async fn register(&self, request: RegisterRequest) -> AuthResult<User> {
         // Validate the registration request
-        request
-            .validate()
-            .map_err(|e| AuthError::PasswordValidation(e))?;
+        request.validate().map_err(AuthError::PasswordValidation)?;
 
         // Additional validations
         if !validate_email(&request.email) {
@@ -35,19 +31,27 @@ impl AuthManager {
             ));
         }
 
-        validate_username(&request.username).map_err(|e| AuthError::PasswordValidation(e))?;
+        validate_username(&request.username).map_err(AuthError::PasswordValidation)?;
 
-        validate_password(&request.password).map_err(|e| AuthError::PasswordValidation(e))?;
+        if !validate_password(&request.password) {
+            return Err(AuthError::PasswordValidation("密码不符合要求".to_string()));
+        }
 
         // Check if user already exists
-        if let Some(_) = self.user_repository.find_by_email(&request.email).await? {
+        if self
+            .user_repository
+            .find_by_email(&request.email)
+            .await?
+            .is_some()
+        {
             return Err(AuthError::UserAlreadyExists);
         }
 
-        if let Some(_) = self
+        if self
             .user_repository
             .find_by_username(&request.username)
             .await?
+            .is_some()
         {
             return Err(AuthError::UserAlreadyExists);
         }
@@ -78,7 +82,7 @@ impl AuthManager {
 
         // Verify password
         let is_valid = verify_password(&request.password, &user.password_hash)
-            .map_err(|e| AuthError::InvalidCredentials)?;
+            .map_err(|_e| AuthError::InvalidCredentials)?;
 
         if !is_valid {
             return Err(AuthError::InvalidCredentials);
@@ -108,14 +112,18 @@ impl AuthManager {
 
         // Verify old password
         let is_valid = verify_password(old_password, &user.password_hash)
-            .map_err(|e| AuthError::InvalidCredentials)?;
+            .map_err(|_e| AuthError::InvalidCredentials)?;
 
         if !is_valid {
             return Err(AuthError::InvalidCredentials);
         }
 
         // Validate new password
-        validate_password(new_password).map_err(|e| AuthError::PasswordValidation(e))?;
+        if !validate_password(new_password) {
+            return Err(AuthError::PasswordValidation(
+                "新密码不符合要求".to_string(),
+            ));
+        }
 
         // Hash new password
         let new_password_hash = hash_password(new_password).map_err(|e| {
@@ -157,7 +165,7 @@ impl AuthManager {
 
         // Update username if provided
         if let Some(new_username) = username {
-            validate_username(&new_username).map_err(|e| AuthError::PasswordValidation(e))?;
+            validate_username(&new_username).map_err(AuthError::PasswordValidation)?;
 
             // Check if username is already taken
             if let Some(existing_user) =

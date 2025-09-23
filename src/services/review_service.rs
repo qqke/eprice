@@ -6,12 +6,18 @@ use std::collections::HashMap;
 pub struct ReviewService {
     /// In-memory review cache (in real app would use database)
     reviews: HashMap<String, UserReview>,
+    /// Auxiliary helpful counters by review id
+    helpful_counts: HashMap<String, usize>,
+    /// Verified review ids
+    verified: std::collections::HashSet<String>,
 }
 
 impl ReviewService {
     pub fn new() -> Self {
         Self {
             reviews: HashMap::new(),
+            helpful_counts: HashMap::new(),
+            verified: std::collections::HashSet::new(),
         }
     }
 
@@ -47,6 +53,31 @@ impl ReviewService {
             review.user_id
         );
         Ok(review)
+    }
+
+    /// Create a review from a provided struct
+    pub fn create_review(&mut self, review: &UserReview) -> ServiceResult<UserReview> {
+        if !(1..=5).contains(&review.rating) {
+            return Err(ServiceError::ValidationError(
+                "Rating must be between 1 and 5".to_string(),
+            ));
+        }
+        if review.comment.trim().is_empty() {
+            return Err(ServiceError::ValidationError(
+                "Comment cannot be empty".to_string(),
+            ));
+        }
+        if (review.store_id.is_none() && review.product_id.is_none())
+            || (review.store_id.is_some() && review.product_id.is_some())
+        {
+            return Err(ServiceError::ValidationError(
+                "Must review either a store or a product".to_string(),
+            ));
+        }
+
+        // Insert/overwrite by id
+        self.reviews.insert(review.id.clone(), review.clone());
+        Ok(review.clone())
     }
 
     /// Get review by ID
@@ -141,6 +172,18 @@ impl ReviewService {
             .collect();
 
         Ok(reviews)
+    }
+
+    /// Get reviews for a product with pagination (newest first)
+    pub fn get_reviews_for_product(
+        &self,
+        product_id: &str,
+        limit: usize,
+        offset: usize,
+    ) -> ServiceResult<Vec<UserReview>> {
+        let mut list = self.get_product_reviews(product_id)?;
+        list.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+        Ok(list.into_iter().skip(offset).take(limit).collect())
     }
 
     /// Get reviews by a user
@@ -323,6 +366,37 @@ impl ReviewService {
             stores: top_stores,
             products: top_products,
         })
+    }
+
+    /// Mark review as helpful by a user (increments counter)
+    pub fn mark_helpful(&mut self, review_id: &str, _user_id: &str) -> ServiceResult<UserReview> {
+        let review = self
+            .reviews
+            .get(review_id)
+            .cloned()
+            .ok_or_else(|| ServiceError::NotFound(format!("Review {} not found", review_id)))?;
+        let count = self
+            .helpful_counts
+            .entry(review_id.to_string())
+            .or_insert(0);
+        *count += 1;
+        Ok(review)
+    }
+
+    /// Get review by id (alias)
+    pub fn get_review_by_id(&self, review_id: &str) -> ServiceResult<UserReview> {
+        self.get_review(review_id)
+    }
+
+    /// Verify a review (service-level flag only)
+    pub fn verify_review(&mut self, review_id: &str) -> ServiceResult<UserReview> {
+        let review = self
+            .reviews
+            .get(review_id)
+            .cloned()
+            .ok_or_else(|| ServiceError::NotFound(format!("Review {} not found", review_id)))?;
+        self.verified.insert(review_id.to_string());
+        Ok(review)
     }
 
     // Helper methods

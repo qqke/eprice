@@ -1,6 +1,12 @@
 use crate::auth::models::User;
+use crate::utils::file_utils::{
+    ensure_directory_exists, get_data_directory, load_from_file, save_to_file,
+};
 use chrono::{DateTime, Duration, Utc};
+use once_cell::sync::Lazy;
 use std::collections::HashMap;
+use std::path::PathBuf;
+use std::sync::Mutex;
 
 /// User session information
 #[derive(Debug, Clone)]
@@ -167,5 +173,56 @@ impl SessionManager {
 impl Default for SessionManager {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+/// Global session manager and remembered session id for runtime persistence
+pub static GLOBAL_SESSION_MANAGER: Lazy<Mutex<SessionManager>> =
+    Lazy::new(|| Mutex::new(SessionManager::new()));
+
+pub static REMEMBERED_SESSION_ID: Lazy<Mutex<Option<String>>> = Lazy::new(|| Mutex::new(None));
+
+/// Set the remembered session id (for "remember me")
+pub fn set_remembered_session(session_id: Option<String>) {
+    if let Ok(mut guard) = REMEMBERED_SESSION_ID.lock() {
+        *guard = session_id;
+    }
+    let _ = persist_remembered_session();
+}
+
+/// Get the remembered session id if any
+pub fn get_remembered_session() -> Option<String> {
+    REMEMBERED_SESSION_ID.lock().ok().and_then(|g| g.clone())
+}
+
+fn remembered_session_file() -> std::io::Result<PathBuf> {
+    let dir = get_data_directory().map_err(|e| std::io::Error::other(e.to_string()))?;
+    Ok(dir.join("remembered_session.json"))
+}
+
+fn persist_remembered_session() -> std::io::Result<()> {
+    let path = remembered_session_file()?;
+    ensure_directory_exists(path.parent().unwrap())
+        .map_err(|e| std::io::Error::other(e.to_string()))?;
+    let value = REMEMBERED_SESSION_ID
+        .lock()
+        .ok()
+        .and_then(|g| g.clone())
+        .unwrap_or_default();
+    let json = serde_json::to_vec(&value).unwrap_or_else(|_| b"null".to_vec());
+    save_to_file(path, &json).map_err(|e| std::io::Error::other(e.to_string()))
+}
+
+pub fn load_remembered_session_from_disk() {
+    if let Ok(path) = remembered_session_file() {
+        if crate::utils::file_utils::file_exists(&path) {
+            if let Ok(bytes) = load_from_file(&path) {
+                if let Ok(value) = serde_json::from_slice::<Option<String>>(&bytes) {
+                    if let Ok(mut guard) = REMEMBERED_SESSION_ID.lock() {
+                        *guard = value;
+                    }
+                }
+            }
+        }
     }
 }

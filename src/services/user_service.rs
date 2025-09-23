@@ -66,6 +66,64 @@ impl UserService {
         Ok(user)
     }
 
+    // 兼容接口：创建用户（从完整 User 结构），返回创建后的用户
+    pub async fn create_user(&mut self, user: &User) -> ServiceResult<User> {
+        if self.username_to_id.contains_key(&user.username) {
+            return Err(ServiceError::BusinessRuleViolation(
+                "Username already exists".to_string(),
+            ));
+        }
+        if self.email_to_id.contains_key(&user.email) {
+            return Err(ServiceError::BusinessRuleViolation(
+                "Email already exists".to_string(),
+            ));
+        }
+        self.users.insert(user.id.clone(), user.clone());
+        self.username_to_id
+            .insert(user.username.clone(), user.id.clone());
+        self.email_to_id.insert(user.email.clone(), user.id.clone());
+        Ok(user.clone())
+    }
+
+    // 兼容接口：按 ID 获取用户
+    pub async fn get_user_by_id(&self, user_id: String) -> ServiceResult<User> {
+        self.get_user(&user_id)
+    }
+
+    // 兼容接口：更新声望分数
+    pub async fn update_reputation(&mut self, user_id: String, score: i32) -> ServiceResult<()> {
+        let user = self
+            .users
+            .get_mut(&user_id)
+            .ok_or_else(|| ServiceError::NotFound(format!("User {} not found", user_id)))?;
+        user.reputation_score = score;
+        Ok(())
+    }
+
+    // 兼容接口：认证（用户名或邮箱 + 密码散列验证）
+    pub async fn authenticate(
+        &self,
+        username_or_email: &str,
+        password: &str,
+    ) -> ServiceResult<User> {
+        let user_id = self
+            .username_to_id
+            .get(username_or_email)
+            .or_else(|| self.email_to_id.get(username_or_email))
+            .ok_or_else(|| ServiceError::NotFound("User not found".to_string()))?;
+        let user = self
+            .users
+            .get(user_id)
+            .cloned()
+            .ok_or_else(|| ServiceError::NotFound("User not found".to_string()))?;
+        if !self.verify_password(password, &user.password_hash)? {
+            return Err(ServiceError::PermissionDenied(
+                "Invalid password".to_string(),
+            ));
+        }
+        Ok(user)
+    }
+
     /// Login with username or email
     pub fn login(
         &mut self,

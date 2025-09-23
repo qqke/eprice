@@ -119,6 +119,34 @@ impl PriceMonitor {
         }
     }
 
+    /// Update/replace a price alert with same id
+    pub fn update_alert(&self, alert: PriceAlert) -> AlertResult<()> {
+        let mut alerts = self.alerts.lock().map_err(|e| {
+            AlertError::MonitoringFailed(format!("Failed to acquire alerts lock: {}", e))
+        })?;
+
+        if !alerts.contains_key(&alert.id) {
+            return Err(AlertError::AlertNotFound(alert.id));
+        }
+
+        alerts.insert(alert.id.clone(), alert);
+        Ok(())
+    }
+
+    /// Toggle alert active state
+    pub fn update_alert_active(&self, alert_id: &str, active: bool) -> AlertResult<()> {
+        let mut alerts = self.alerts.lock().map_err(|e| {
+            AlertError::MonitoringFailed(format!("Failed to acquire alerts lock: {}", e))
+        })?;
+
+        if let Some(alert) = alerts.get_mut(alert_id) {
+            alert.is_active = active;
+            Ok(())
+        } else {
+            Err(AlertError::AlertNotFound(alert_id.to_string()))
+        }
+    }
+
     /// Get all active alerts for a user
     pub fn get_user_alerts(&self, user_id: &str) -> AlertResult<Vec<PriceAlert>> {
         let alerts = self.alerts.lock().map_err(|e| {

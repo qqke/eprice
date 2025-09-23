@@ -232,6 +232,18 @@ impl Product {
             Some(sum / verified_prices.len() as f64)
         }
     }
+    /// 获取指定门店的最近一次价格记录
+    pub fn price_at_store(&self, store_id: &str) -> Option<&PriceRecord> {
+        self.prices
+            .iter()
+            .filter(|p| p.store_id == store_id)
+            .max_by(|a, b| a.timestamp.cmp(&b.timestamp))
+    }
+
+    /// 追加一条价格记录
+    pub fn add_price_record(&mut self, price_record: PriceRecord) {
+        self.prices.push(price_record);
+    }
 }
 
 /// 价格记录结构体，包含价格信息和时间戳
@@ -343,5 +355,43 @@ impl Store {
         let c = 2.0 * a.sqrt().atan2((1.0 - a).sqrt());
 
         EARTH_RADIUS * c // 返回计算出的距离
+    }
+    /// 判断当前是否在营业时间内（简易实现）
+    /// 支持格式："24 hours" 或 "HH:MM-HH:MM"（不考虑时区，仅比较时间）
+    pub fn is_open_now(&self) -> bool {
+        let hours = self.opening_hours.trim();
+        if hours.eq_ignore_ascii_case("24 hours") {
+            return true;
+        }
+        let Some((open, close)) = hours.split_once('-') else {
+            return false;
+        };
+        let parse_hm = |s: &str| -> Option<(u32, u32)> {
+            let (h, m) = s.trim().split_once(':')?;
+            Some((h.parse().ok()?, m.parse().ok()?))
+        };
+        let (oh, om) = match parse_hm(open) {
+            Some(v) => v,
+            None => return false,
+        };
+        let (ch, cm) = match parse_hm(close) {
+            Some(v) => v,
+            None => return false,
+        };
+
+        use chrono::Timelike;
+        let now = chrono::Local::now();
+        let (nh, nm) = (now.hour(), now.minute());
+
+        let start = oh * 60 + om;
+        let end = ch * 60 + cm;
+        let cur = nh * 60 + nm;
+
+        if start <= end {
+            cur >= start && cur <= end
+        } else {
+            // 跨午夜区间，如 22:00-06:00
+            cur >= start || cur <= end
+        }
     }
 }

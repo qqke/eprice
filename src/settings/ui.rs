@@ -165,6 +165,12 @@ impl SettingsUI {
                             "跟随系统",
                         );
                     });
+                let theme_hint = match self.config.ui_settings.theme.as_str() {
+                    "light" => "当前：浅色主题",
+                    "dark" => "当前：深色主题",
+                    _ => "当前：跟随系统",
+                };
+                ui.label(egui::RichText::new(theme_hint).small());
             });
 
             ui.horizontal(|ui| {
@@ -193,6 +199,7 @@ impl SettingsUI {
                             "自动",
                         );
                     });
+                ui.label(egui::RichText::new("部分语言需要重启生效").small());
             });
 
             ui.horizontal(|ui| {

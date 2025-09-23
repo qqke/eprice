@@ -1,11 +1,13 @@
 use crate::alerts::AlertUI;
 use crate::auth::{AuthState, AuthUI};
+use crate::database::DatabaseManager;
 use crate::models::{PriceRecord, Product, Store};
 #[cfg(not(target_arch = "wasm32"))]
 use crate::scanner::ScannerUI;
 use crate::services::AppServices;
 use chrono::Utc;
 use eframe::egui;
+use std::sync::Arc;
 use walkers::{
     HttpTiles, Map, MapMemory, Position, Tiles,
     extras::{LabeledSymbol, LabeledSymbolStyle, Places, Symbol},
@@ -39,6 +41,8 @@ pub struct TemplateApp {
     scanner_ui: ScannerUI, // Scanner UI component
     #[serde(skip)]
     app_services: AppServices, // Business logic services
+    #[serde(skip)]
+    database_manager: Option<Arc<DatabaseManager>>, // Database connection
 }
 
 #[derive(serde::Deserialize, serde::Serialize, PartialEq)]
@@ -78,6 +82,7 @@ impl Default for TemplateApp {
             #[cfg(not(target_arch = "wasm32"))]
             scanner_ui: ScannerUI::new(),
             app_services: AppServices::new(),
+            database_manager: None,
         }
     }
 }
@@ -237,10 +242,41 @@ impl TemplateApp {
             ..Self::default()
         };
 
+        // Initialize database connection
+        app.initialize_database();
+
         // Initialize services with sample data
         app.initialize_services();
 
         app
+    }
+
+    /// Initialize database connection
+    fn initialize_database(&mut self) {
+        // Try to initialize database connection
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        match rt.block_on(DatabaseManager::new_default()) {
+            Ok(database_manager) => {
+                let database_manager = Arc::new(database_manager);
+                self.database_manager = Some(database_manager.clone());
+
+                // Initialize AuthUI with database
+                match AuthUI::with_database_sync(database_manager) {
+                    Ok(auth_ui) => {
+                        self.auth_ui = auth_ui;
+                        log::info!("Database connection initialized successfully");
+                    }
+                    Err(e) => {
+                        log::error!("Failed to initialize AuthUI with database: {}", e);
+                        // Keep default AuthUI without database
+                    }
+                }
+            }
+            Err(e) => {
+                log::error!("Failed to initialize database: {}", e);
+                // Keep default AuthUI without database
+            }
+        }
     }
 
     /// Initialize services with sample data

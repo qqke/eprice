@@ -1,9 +1,9 @@
-// pub mod auth_manager; // Disabled for now due to database dependency
+pub mod auth_manager;
 pub mod models;
 pub mod session;
 pub mod ui;
 
-// pub use auth_manager::AuthManager; // Disabled for now
+pub use auth_manager::AuthManager;
 pub use models::{LoginRequest, RegisterRequest, User};
 pub use session::{SessionManager, UserSession};
 pub use ui::{AuthState, AuthUI};
@@ -23,8 +23,8 @@ pub enum AuthError {
     Unauthorized,
     #[error("Password validation failed: {0}")]
     PasswordValidation(String),
-    // #[error("Database error: {0}")]
-    // Database(#[from] sqlx::Error),
+    #[error("Database error: {0}")]
+    Database(#[from] anyhow::Error),
 }
 
 pub type AuthResult<T> = Result<T, AuthError>;

@@ -3,3 +3,5 @@ repos:
     rev: v1.0
     hooks:
       - id: fmt
+      - id: clippy                 # 代码质量检查
+      - id: cargo-check            # 编译检查

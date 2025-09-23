@@ -1,5 +1,6 @@
 use crate::models::Product;
 use crate::scanner::{BarcodeType, CameraInfo, ProductMatch, ScanResult, ScannerService};
+use crate::utils::{generate_barcode_checksum, validate_barcode};
 use eframe::egui;
 use std::time::{Duration, Instant};
 
@@ -42,6 +43,11 @@ pub struct ScannerUI {
     search_results: Vec<ProductMatch>,
     #[allow(dead_code)]
     search_filters: SearchFilters,
+
+    // Manual barcode input
+    manual_barcode_input: String,
+    manual_barcode_type: BarcodeType,
+    manual_barcode_info: Option<String>,
 
     // Enhanced status and feedback
     status_message: String,
@@ -141,6 +147,10 @@ impl ScannerUI {
                 only_on_sale: false,
             },
 
+            manual_barcode_input: String::new(),
+            manual_barcode_type: BarcodeType::Ean13,
+            manual_barcode_info: None,
+
             status_message: "Ready to scan - Point camera at barcode".to_string(),
             error_message: None,
             success_animation: false,
@@ -199,6 +209,11 @@ impl ScannerUI {
 
         // Advanced search section with filters
         self.show_manual_search_section(ui);
+
+        ui.separator();
+
+        // Manual barcode input and utilities
+        self.show_manual_barcode_section(ui);
 
         ui.separator();
 
@@ -670,6 +685,73 @@ impl ScannerUI {
                         }
                     });
             });
+        }
+    }
+
+    /// Show manual barcode input section
+    fn show_manual_barcode_section(&mut self, ui: &mut egui::Ui) {
+        ui.label("⌨️ Manual Barcode Input");
+
+        ui.horizontal(|ui| {
+            ui.label("Barcode:");
+            ui.text_edit_singleline(&mut self.manual_barcode_input);
+
+            egui::ComboBox::from_label("")
+                .selected_text(format!("{:?}", self.manual_barcode_type))
+                .show_ui(ui, |ui| {
+                    ui.selectable_value(
+                        &mut self.manual_barcode_type,
+                        BarcodeType::Ean13,
+                        "EAN-13",
+                    );
+                    // UPC 未在模型中定义，暂不提供
+                    ui.selectable_value(&mut self.manual_barcode_type, BarcodeType::Ean8, "EAN-8");
+                    ui.selectable_value(
+                        &mut self.manual_barcode_type,
+                        BarcodeType::Code128,
+                        "Code128",
+                    );
+                });
+
+            if ui.button("✔ Validate").clicked() {
+                let code = self.manual_barcode_input.trim();
+                if validate_barcode(code) {
+                    // Optionally compute checksum for EAN/UPC
+                    if let Some(chk) = generate_barcode_checksum(code) {
+                        self.manual_barcode_info = Some(format!("Valid. Checksum={}", chk));
+                    } else {
+                        self.manual_barcode_info = Some("Valid".to_string());
+                    }
+                } else {
+                    self.manual_barcode_info = Some("Invalid barcode".to_string());
+                }
+            }
+
+            if ui.button("🔎 Lookup").clicked() {
+                let code = self.manual_barcode_input.trim();
+                if code.is_empty() {
+                    self.error_message = Some("Please enter a barcode".to_string());
+                } else {
+                    match self.scanner_service.matcher().find_product_by_barcode(code) {
+                        Ok(Some(product)) => {
+                            self.current_product = Some(product.clone());
+                            self.status_message = format!("Product found by barcode: {}", code);
+                            self.error_message = None;
+                        }
+                        Ok(None) => {
+                            self.current_product = None;
+                            self.status_message = format!("No product for barcode: {}", code);
+                        }
+                        Err(e) => {
+                            self.error_message = Some(format!("Lookup failed: {}", e));
+                        }
+                    }
+                }
+            }
+        });
+
+        if let Some(info) = &self.manual_barcode_info {
+            ui.label(info);
         }
     }
 

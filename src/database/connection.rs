@@ -25,7 +25,13 @@ impl DatabaseManager {
 
         let data_dir = utils::get_data_directory()?;
         let db_path = data_dir.join("eprice.db");
-        let database_url = format!("sqlite:{}", db_path.display());
+
+        // Use simple path format for SQLite
+        let database_url = format!("sqlite://{}", db_path.display());
+
+        log::info!("Connecting to database: {}", database_url);
+        log::info!("Database path: {}", db_path.display());
+        log::info!("Database path exists: {}", db_path.exists());
 
         Self::new(&database_url).await
     }

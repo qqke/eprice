@@ -199,6 +199,27 @@ impl StoreService {
         Ok(store_distances)
     }
 
+    /// 兼容接口：按距离返回门店列表（不含距离），支持分页参数
+    pub fn find_nearby_stores(
+        &self,
+        latitude: f64,
+        longitude: f64,
+        radius_km: f64,
+    ) -> ServiceResult<Vec<Store>> {
+        let with_distance = self.find_stores_near(latitude, longitude, radius_km)?;
+        Ok(with_distance.into_iter().map(|sd| sd.store).collect())
+    }
+
+    /// 根据地理坐标与半径获取附近门店（与 README API 对齐）
+    pub fn get_nearby_stores(
+        &self,
+        lat: f64,
+        lon: f64,
+        radius_km: f64,
+    ) -> ServiceResult<Vec<Store>> {
+        self.find_nearby_stores(lat, lon, radius_km)
+    }
+
     /// Get stores by tag
     pub fn get_stores_by_tag(&self, tag: &str) -> ServiceResult<Vec<Store>> {
         let stores: Vec<Store> = self
