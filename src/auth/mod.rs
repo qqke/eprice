@@ -1,8 +1,10 @@
+#[cfg(not(target_arch = "wasm32"))]
 pub mod auth_manager;
 pub mod models;
 pub mod session;
 pub mod ui;
 
+#[cfg(not(target_arch = "wasm32"))]
 pub use auth_manager::AuthManager;
 pub use models::{LoginRequest, RegisterRequest, User};
 pub use session::{SessionManager, UserSession};

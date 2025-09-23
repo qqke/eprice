@@ -1,13 +1,20 @@
-use crate::auth::models::{LoginRequest, RegisterRequest};
+#[cfg(not(target_arch = "wasm32"))]
+use crate::auth::AuthManager;
+use crate::auth::SessionManager;
+#[cfg(not(target_arch = "wasm32"))]
+use crate::auth::models::LoginRequest;
+use crate::auth::models::RegisterRequest;
+#[cfg(not(target_arch = "wasm32"))]
+use crate::auth::session::set_remembered_session;
 use crate::auth::session::{
     GLOBAL_SESSION_MANAGER, get_remembered_session, load_remembered_session_from_disk,
-    set_remembered_session,
 };
-use crate::auth::{AuthManager, SessionManager};
+#[cfg(not(target_arch = "wasm32"))]
 use crate::database::DatabaseManager;
 use crate::models::User;
 use crate::utils::validate_email;
 use egui;
+#[cfg(not(target_arch = "wasm32"))]
 use std::sync::Arc;
 
 /// Authentication state for UI management
@@ -31,6 +38,7 @@ pub struct AuthUI {
     pub auth_state: AuthState,
     pub session_manager: SessionManager,
     pub current_session_id: Option<String>,
+    #[cfg(not(target_arch = "wasm32"))]
     pub auth_manager: Option<Arc<AuthManager>>,
 
     // Login form fields
@@ -55,16 +63,14 @@ pub struct AuthUI {
 impl AuthUI {
     pub fn new() -> Self {
         // Attempt restore remembered session at creation
-        let mut ui = Self {
-            auth_manager: None,
-            ..Self::default()
-        };
+        let mut ui = Self { ..Self::default() };
         load_remembered_session_from_disk();
         ui.try_restore_session();
         ui
     }
 
-    /// Initialize the AuthUI with database connection
+    /// Initialize the AuthUI with database connection (native only)
+    #[cfg(not(target_arch = "wasm32"))]
     pub async fn with_database(
         database_manager: Arc<DatabaseManager>,
     ) -> Result<Self, Box<dyn std::error::Error>> {
@@ -85,7 +91,8 @@ impl AuthUI {
         Ok(ui)
     }
 
-    /// Initialize the AuthUI with database connection using a new Tokio runtime
+    /// Initialize the AuthUI with database connection using a new Tokio runtime (native only)
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn with_database_sync(
         database_manager: Arc<DatabaseManager>,
     ) -> Result<Self, Box<dyn std::error::Error>> {
@@ -99,11 +106,17 @@ impl AuthUI {
             return;
         }
 
-        egui::Window::new("用户认证")
+        egui::Window::new("🔐 用户认证")
             .collapsible(false)
             .resizable(false)
             .anchor(egui::Align2::CENTER_CENTER, egui::vec2(0.0, 0.0))
+            .default_size(egui::vec2(400.0, 500.0))
             .show(ctx, |ui| {
+                // 添加背景色和边框
+                ui.style_mut().visuals.window_fill = egui::Color32::from_gray(248);
+                ui.style_mut().visuals.window_stroke =
+                    egui::Stroke::new(1.0, egui::Color32::from_gray(200));
+
                 self.render_auth_content(ui);
             });
     }
@@ -129,187 +142,341 @@ impl AuthUI {
     /// Render the initial view when user is logged out
     fn render_logged_out_view(&mut self, ui: &mut egui::Ui) {
         ui.vertical_centered(|ui| {
-            ui.heading("欢迎使用 eprice");
+            // 添加应用图标和标题
+            ui.add_space(20.0);
+            ui.heading("🛒 eprice");
+            ui.add_space(5.0);
+            ui.label(
+                egui::RichText::new("智能价格比较平台")
+                    .size(14.0)
+                    .color(egui::Color32::from_gray(100)),
+            );
+            ui.add_space(30.0);
+
+            ui.label(egui::RichText::new("请选择操作:").size(16.0));
             ui.add_space(20.0);
 
-            ui.label("请选择操作:");
-            ui.add_space(10.0);
+            // 使用更大的按钮和更好的样式
+            let button_size = egui::vec2(200.0, 40.0);
 
-            if ui.button("登录").clicked() {
+            if ui
+                .add_sized(button_size, egui::Button::new("🔑 登录"))
+                .clicked()
+            {
                 self.auth_state = AuthState::LoggingIn;
                 self.clear_form_errors();
             }
+            ui.add_space(10.0);
 
-            if ui.button("注册").clicked() {
+            if ui
+                .add_sized(button_size, egui::Button::new("📝 注册"))
+                .clicked()
+            {
                 self.auth_state = AuthState::Registering;
                 self.clear_form_errors();
             }
-
             ui.add_space(10.0);
 
-            if ui.button("游客模式").clicked() {
+            if ui
+                .add_sized(button_size, egui::Button::new("👤 游客模式"))
+                .clicked()
+            {
                 self.show_auth_window = false;
             }
+
+            ui.add_space(20.0);
         });
     }
 
     /// Render the login form
     fn render_login_form(&mut self, ui: &mut egui::Ui) {
         ui.vertical_centered(|ui| {
-            ui.heading("用户登录");
             ui.add_space(20.0);
+            ui.heading("🔑 用户登录");
+            ui.add_space(30.0);
 
-            // Email field
-            ui.horizontal(|ui| {
-                ui.label("邮箱:");
-                ui.add(
-                    egui::TextEdit::singleline(&mut self.login_email).hint_text("请输入邮箱地址"),
-                );
+            // 创建表单容器
+            ui.group(|ui| {
+                ui.set_min_size(egui::vec2(300.0, 0.0));
+                ui.vertical_centered(|ui| {
+                    ui.add_space(20.0);
+
+                    // Email field
+                    ui.horizontal(|ui| {
+                        ui.allocate_ui_with_layout(
+                            egui::vec2(80.0, 0.0),
+                            egui::Layout::left_to_right(egui::Align::Center),
+                            |ui| {
+                                ui.label(egui::RichText::new("📧 邮箱:").size(14.0));
+                            },
+                        );
+                        ui.add(
+                            egui::TextEdit::singleline(&mut self.login_email)
+                                .hint_text("请输入邮箱地址")
+                                .desired_width(200.0),
+                        );
+                    });
+                    ui.add_space(15.0);
+
+                    // Password field
+                    ui.horizontal(|ui| {
+                        ui.allocate_ui_with_layout(
+                            egui::vec2(80.0, 0.0),
+                            egui::Layout::left_to_right(egui::Align::Center),
+                            |ui| {
+                                ui.label(egui::RichText::new("🔒 密码:").size(14.0));
+                            },
+                        );
+                        ui.add(
+                            egui::TextEdit::singleline(&mut self.login_password)
+                                .password(true)
+                                .hint_text("请输入密码")
+                                .desired_width(200.0),
+                        );
+                    });
+                    ui.add_space(15.0);
+
+                    // Remember me checkbox
+                    ui.horizontal(|ui| {
+                        ui.add_space(50.0);
+                        ui.checkbox(&mut self.login_remember_me, "记住我");
+                    });
+
+                    ui.add_space(20.0);
+                });
             });
 
-            // Password field
-            ui.horizontal(|ui| {
-                ui.label("密码:");
-                ui.add(
-                    egui::TextEdit::singleline(&mut self.login_password)
-                        .password(true)
-                        .hint_text("请输入密码"),
-                );
-            });
-
-            // Remember me checkbox
-            ui.checkbox(&mut self.login_remember_me, "记住我");
-
-            ui.add_space(10.0);
+            ui.add_space(20.0);
 
             // Error message
             if let Some(error) = &self.login_error {
-                ui.colored_label(egui::Color32::RED, error);
-                ui.add_space(5.0);
+                ui.colored_label(
+                    egui::Color32::from_rgb(220, 53, 69),
+                    format!("⚠️ {}", error),
+                );
+                ui.add_space(10.0);
             }
 
             // Action buttons
             ui.horizontal(|ui| {
-                if ui.button("登录").clicked() {
+                if ui
+                    .add_sized(egui::vec2(100.0, 35.0), egui::Button::new("🔑 登录"))
+                    .clicked()
+                {
                     self.handle_login();
                 }
-
-                if ui.button("返回").clicked() {
+                ui.add_space(10.0);
+                if ui
+                    .add_sized(egui::vec2(100.0, 35.0), egui::Button::new("⬅️ 返回"))
+                    .clicked()
+                {
                     self.auth_state = AuthState::LoggedOut;
                     self.clear_login_form();
                 }
             });
 
-            ui.add_space(10.0);
+            ui.add_space(15.0);
 
             if ui.link("没有账户？点击注册").clicked() {
                 self.auth_state = AuthState::Registering;
                 self.clear_form_errors();
             }
+
+            ui.add_space(20.0);
         });
     }
 
     /// Render the registration form
     fn render_register_form(&mut self, ui: &mut egui::Ui) {
         ui.vertical_centered(|ui| {
-            ui.heading("用户注册");
             ui.add_space(20.0);
+            ui.heading("📝 用户注册");
+            ui.add_space(30.0);
 
-            // Username field
-            ui.horizontal(|ui| {
-                ui.label("用户名:");
-                ui.add(
-                    egui::TextEdit::singleline(&mut self.register_username)
-                        .hint_text("请输入用户名"),
-                );
+            // 创建表单容器
+            ui.group(|ui| {
+                ui.set_min_size(egui::vec2(300.0, 0.0));
+                ui.vertical_centered(|ui| {
+                    ui.add_space(20.0);
+
+                    // Username field
+                    ui.horizontal(|ui| {
+                        ui.allocate_ui_with_layout(
+                            egui::vec2(80.0, 0.0),
+                            egui::Layout::left_to_right(egui::Align::Center),
+                            |ui| {
+                                ui.label(egui::RichText::new("👤 用户名:").size(14.0));
+                            },
+                        );
+                        ui.add(
+                            egui::TextEdit::singleline(&mut self.register_username)
+                                .hint_text("请输入用户名")
+                                .desired_width(200.0),
+                        );
+                    });
+                    ui.add_space(15.0);
+
+                    // Email field
+                    ui.horizontal(|ui| {
+                        ui.allocate_ui_with_layout(
+                            egui::vec2(80.0, 0.0),
+                            egui::Layout::left_to_right(egui::Align::Center),
+                            |ui| {
+                                ui.label(egui::RichText::new("📧 邮箱:").size(14.0));
+                            },
+                        );
+                        ui.add(
+                            egui::TextEdit::singleline(&mut self.register_email)
+                                .hint_text("请输入邮箱地址")
+                                .desired_width(200.0),
+                        );
+                    });
+                    ui.add_space(15.0);
+
+                    // Password field
+                    ui.horizontal(|ui| {
+                        ui.allocate_ui_with_layout(
+                            egui::vec2(80.0, 0.0),
+                            egui::Layout::left_to_right(egui::Align::Center),
+                            |ui| {
+                                ui.label(egui::RichText::new("🔒 密码:").size(14.0));
+                            },
+                        );
+                        ui.add(
+                            egui::TextEdit::singleline(&mut self.register_password)
+                                .password(true)
+                                .hint_text("请输入密码")
+                                .desired_width(200.0),
+                        );
+                    });
+                    ui.add_space(15.0);
+
+                    // Confirm password field
+                    ui.horizontal(|ui| {
+                        ui.allocate_ui_with_layout(
+                            egui::vec2(80.0, 0.0),
+                            egui::Layout::left_to_right(egui::Align::Center),
+                            |ui| {
+                                ui.label(egui::RichText::new("🔒 确认密码:").size(14.0));
+                            },
+                        );
+                        ui.add(
+                            egui::TextEdit::singleline(&mut self.register_password_confirm)
+                                .password(true)
+                                .hint_text("请再次输入密码")
+                                .desired_width(200.0),
+                        );
+                    });
+
+                    ui.add_space(20.0);
+                });
             });
 
-            // Email field
-            ui.horizontal(|ui| {
-                ui.label("邮箱:");
-                ui.add(
-                    egui::TextEdit::singleline(&mut self.register_email)
-                        .hint_text("请输入邮箱地址"),
-                );
-            });
-
-            // Password field
-            ui.horizontal(|ui| {
-                ui.label("密码:");
-                ui.add(
-                    egui::TextEdit::singleline(&mut self.register_password)
-                        .password(true)
-                        .hint_text("请输入密码"),
-                );
-            });
-
-            // Confirm password field
-            ui.horizontal(|ui| {
-                ui.label("确认密码:");
-                ui.add(
-                    egui::TextEdit::singleline(&mut self.register_password_confirm)
-                        .password(true)
-                        .hint_text("请再次输入密码"),
-                );
-            });
-
-            ui.add_space(10.0);
+            ui.add_space(20.0);
 
             // Error message
             if let Some(error) = &self.register_error {
-                ui.colored_label(egui::Color32::RED, error);
-                ui.add_space(5.0);
+                ui.colored_label(
+                    egui::Color32::from_rgb(220, 53, 69),
+                    format!("⚠️ {}", error),
+                );
+                ui.add_space(10.0);
             }
 
             // Action buttons
             ui.horizontal(|ui| {
-                if ui.button("注册").clicked() {
+                if ui
+                    .add_sized(egui::vec2(100.0, 35.0), egui::Button::new("📝 注册"))
+                    .clicked()
+                {
                     self.handle_register();
                 }
-
-                if ui.button("返回").clicked() {
+                ui.add_space(10.0);
+                if ui
+                    .add_sized(egui::vec2(100.0, 35.0), egui::Button::new("⬅️ 返回"))
+                    .clicked()
+                {
                     self.auth_state = AuthState::LoggedOut;
                     self.clear_register_form();
                 }
             });
 
-            ui.add_space(10.0);
+            ui.add_space(15.0);
 
             if ui.link("已有账户？点击登录").clicked() {
                 self.auth_state = AuthState::LoggingIn;
                 self.clear_form_errors();
             }
+
+            ui.add_space(20.0);
         });
     }
 
     /// Render the logged in user view
     fn render_logged_in_view(&mut self, ui: &mut egui::Ui, user: &User) {
         ui.vertical_centered(|ui| {
-            ui.heading("用户信息");
             ui.add_space(20.0);
+            ui.heading("👤 用户信息");
+            ui.add_space(30.0);
 
-            ui.label(format!("欢迎, {}!", user.username));
-            ui.label(format!("邮箱: {}", user.email));
-            ui.label(format!("信誉分数: {}", user.reputation_score));
+            // 创建用户信息卡片
+            ui.group(|ui| {
+                ui.set_min_size(egui::vec2(300.0, 0.0));
+                ui.vertical_centered(|ui| {
+                    ui.add_space(20.0);
 
-            if let Some(last_login) = user.last_login {
-                ui.label(format!(
-                    "上次登录: {}",
-                    last_login.format("%Y-%m-%d %H:%M:%S")
-                ));
-            }
+                    ui.label(
+                        egui::RichText::new(format!("🎉 欢迎, {}!", user.username))
+                            .size(18.0)
+                            .color(egui::Color32::from_rgb(40, 167, 69)),
+                    );
+                    ui.add_space(15.0);
+
+                    ui.horizontal(|ui| {
+                        ui.label(egui::RichText::new("📧 邮箱:").size(14.0));
+                        ui.add_space(10.0);
+                        ui.label(user.email.to_string());
+                    });
+                    ui.add_space(10.0);
+
+                    ui.horizontal(|ui| {
+                        ui.label(egui::RichText::new("⭐ 信誉分数:").size(14.0));
+                        ui.add_space(10.0);
+                        ui.label(user.reputation_score.to_string());
+                    });
+
+                    if let Some(last_login) = user.last_login {
+                        ui.add_space(10.0);
+                        ui.horizontal(|ui| {
+                            ui.label(egui::RichText::new("🕒 上次登录:").size(14.0));
+                            ui.add_space(10.0);
+                            ui.label(last_login.format("%Y-%m-%d %H:%M:%S").to_string());
+                        });
+                    }
+
+                    ui.add_space(20.0);
+                });
+            });
 
             ui.add_space(20.0);
 
             ui.horizontal(|ui| {
-                if ui.button("继续使用").clicked() {
+                if ui
+                    .add_sized(egui::vec2(120.0, 35.0), egui::Button::new("🚀 继续使用"))
+                    .clicked()
+                {
                     self.show_auth_window = false;
                 }
-
-                if ui.button("退出登录").clicked() {
+                ui.add_space(10.0);
+                if ui
+                    .add_sized(egui::vec2(120.0, 35.0), egui::Button::new("🚪 退出登录"))
+                    .clicked()
+                {
                     self.handle_logout();
                 }
             });
+
+            ui.add_space(20.0);
         });
     }
 
@@ -327,6 +494,7 @@ impl AuthUI {
         }
 
         // Create login request
+        #[cfg(not(target_arch = "wasm32"))]
         let login_request = LoginRequest {
             email: self.login_email.clone(),
             password: self.login_password.clone(),
@@ -334,9 +502,12 @@ impl AuthUI {
         };
 
         // Use database authentication if available
+        #[cfg(not(target_arch = "wasm32"))]
         if let Some(auth_manager) = &self.auth_manager {
             // Create a new runtime for database operations
+            #[cfg(not(target_arch = "wasm32"))]
             let rt = tokio::runtime::Runtime::new().unwrap();
+            #[cfg(not(target_arch = "wasm32"))]
             match rt.block_on(auth_manager.login(login_request)) {
                 Ok(user) => {
                     // Store also in global session manager for cross-UI persistence
@@ -396,10 +567,13 @@ impl AuthUI {
             return;
         }
 
-        // Use database authentication if available
+        // Use database authentication if available (native only)
+        #[cfg(not(target_arch = "wasm32"))]
         if let Some(auth_manager) = &self.auth_manager {
             // Create a new runtime for database operations
+            #[cfg(not(target_arch = "wasm32"))]
             let rt = tokio::runtime::Runtime::new().unwrap();
+            #[cfg(not(target_arch = "wasm32"))]
             match rt.block_on(auth_manager.register(register_request)) {
                 Ok(user) => {
                     let session_id = {

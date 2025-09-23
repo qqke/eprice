@@ -1,5 +1,6 @@
 use crate::alerts::AlertUI;
 use crate::auth::{AuthState, AuthUI};
+#[cfg(not(target_arch = "wasm32"))]
 use crate::database::DatabaseManager;
 use crate::models::{PriceRecord, Product, Store};
 #[cfg(not(target_arch = "wasm32"))]
@@ -7,6 +8,7 @@ use crate::scanner::ScannerUI;
 use crate::services::AppServices;
 use chrono::Utc;
 use eframe::egui;
+#[cfg(not(target_arch = "wasm32"))]
 use std::sync::Arc;
 use walkers::{
     HttpTiles, Map, MapMemory, Position, Tiles,
@@ -41,6 +43,7 @@ pub struct TemplateApp {
     scanner_ui: ScannerUI, // Scanner UI component
     #[serde(skip)]
     app_services: AppServices, // Business logic services
+    #[cfg(not(target_arch = "wasm32"))]
     #[serde(skip)]
     database_manager: Option<Arc<DatabaseManager>>, // Database connection
 }
@@ -82,6 +85,7 @@ impl Default for TemplateApp {
             #[cfg(not(target_arch = "wasm32"))]
             scanner_ui: ScannerUI::new(),
             app_services: AppServices::new(),
+            #[cfg(not(target_arch = "wasm32"))]
             database_manager: None,
         }
     }
@@ -242,8 +246,11 @@ impl TemplateApp {
             ..Self::default()
         };
 
-        // Initialize database connection
-        app.initialize_database();
+        // Initialize database connection on native builds
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            app.initialize_database();
+        }
 
         // Initialize services with sample data
         app.initialize_services();
@@ -251,7 +258,8 @@ impl TemplateApp {
         app
     }
 
-    /// Initialize database connection
+    /// Initialize database connection (native only)
+    #[cfg(not(target_arch = "wasm32"))]
     fn initialize_database(&mut self) {
         // Try to initialize database connection
         let rt = tokio::runtime::Runtime::new().unwrap();

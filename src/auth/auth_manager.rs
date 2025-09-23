@@ -1,18 +1,23 @@
 use crate::auth::models::{LoginRequest, RegisterRequest, User};
 use crate::auth::{AuthError, AuthResult};
+#[cfg(not(target_arch = "wasm32"))]
 use crate::database::{UserRepository, repository::Repository};
 use crate::utils::crypto::{hash_password, verify_password};
 use crate::utils::{validate_email, validate_password, validate_username};
+#[cfg(not(target_arch = "wasm32"))]
 use sqlx::Pool;
+#[cfg(not(target_arch = "wasm32"))]
 use sqlx::Sqlite;
 
 /// Authentication manager for handling user login and registration
+#[cfg(not(target_arch = "wasm32"))]
 pub struct AuthManager {
     user_repository: UserRepository,
 }
 
 impl AuthManager {
     /// Create a new authentication manager
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn new(pool: Pool<Sqlite>) -> Self {
         Self {
             user_repository: UserRepository::new(pool),
