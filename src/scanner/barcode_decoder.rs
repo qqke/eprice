@@ -46,21 +46,18 @@ impl BarcodeDecoder {
         let mut best_confidence = 0.0;
 
         // Method 1: Pattern-based detection
-        if let Ok(result) = self.decode_with_patterns(image_data) {
-            if result.confidence > best_confidence {
+        if let Ok(result) = self.decode_with_patterns(image_data)
+            && result.confidence > best_confidence {
                 best_confidence = result.confidence;
                 best_result = Some(result);
             }
-        }
 
         // Method 2: Mock barcode generation for testing
-        if best_result.is_none() || best_confidence < self.confidence_threshold {
-            if let Ok(result) = self.generate_mock_barcode(image_data) {
-                if result.confidence > best_confidence {
+        if (best_result.is_none() || best_confidence < self.confidence_threshold)
+            && let Ok(result) = self.generate_mock_barcode(image_data)
+                && result.confidence > best_confidence {
                     best_result = Some(result);
                 }
-            }
-        }
 
         match best_result {
             Some(result) if result.confidence >= self.confidence_threshold => {
@@ -96,11 +93,10 @@ impl BarcodeDecoder {
 
     /// Validate barcode format
     pub fn validate_barcode(&self, barcode: &str, barcode_type: &BarcodeType) -> bool {
-        if let Some(pattern) = self.barcode_patterns.get(barcode_type) {
-            if let Ok(regex) = Regex::new(&pattern.validation_pattern) {
+        if let Some(pattern) = self.barcode_patterns.get(barcode_type)
+            && let Ok(regex) = Regex::new(&pattern.validation_pattern) {
                 return regex.is_match(barcode);
             }
-        }
         false
     }
 

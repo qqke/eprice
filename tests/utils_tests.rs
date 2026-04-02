@@ -249,10 +249,7 @@ fn test_calculate_price_trend() {
 
     let trend = calculate_price_trend(&prices);
 
-    match trend {
-        PriceTrend::Increasing => assert!(true), // Price increased from 1000 to 1200
-        _ => assert!(false, "Expected increasing trend"),
-    }
+    assert_eq!(trend, PriceTrend::Increasing);
 }
 
 #[test]
@@ -266,10 +263,7 @@ fn test_calculate_price_trend_decreasing() {
 
     let trend = calculate_price_trend(&prices);
 
-    match trend {
-        PriceTrend::Decreasing => assert!(true),
-        _ => assert!(false, "Expected decreasing trend"),
-    }
+    assert_eq!(trend, PriceTrend::Decreasing);
 }
 
 #[test]
@@ -283,10 +277,7 @@ fn test_calculate_price_trend_stable() {
 
     let trend = calculate_price_trend(&prices);
 
-    match trend {
-        PriceTrend::Stable => assert!(true),
-        _ => assert!(false, "Expected stable trend"),
-    }
+    assert_eq!(trend, PriceTrend::Stable);
 }
 
 #[test]

@@ -55,8 +55,8 @@ impl ProductService {
         self.validate_product_data(&name, &category, &description)?;
 
         // Check if barcode already exists
-        if let Some(ref bc) = barcode {
-            if self
+        if let Some(ref bc) = barcode
+            && self
                 .products
                 .values()
                 .any(|p| p.barcode.as_ref() == Some(bc))
@@ -65,7 +65,6 @@ impl ProductService {
                     "Barcode already exists".to_string(),
                 ));
             }
-        }
 
         // Create product
         let product = Product::new(name, category, description, barcode, vec![], tags);

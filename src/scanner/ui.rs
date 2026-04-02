@@ -827,8 +827,8 @@ impl ScannerUI {
         match self.scanner_service.scan_and_match() {
             Ok(Some(product)) => {
                 // Found both barcode and product
-                if let Ok(frame) = self.scanner_service.camera().capture_frame() {
-                    if let Ok(scan_result) = self.scanner_service.decoder().decode(&frame) {
+                if let Ok(frame) = self.scanner_service.camera().capture_frame()
+                    && let Ok(scan_result) = self.scanner_service.decoder().decode(&frame) {
                         self.current_scan = Some(scan_result.clone());
                         self.current_product = Some(product.clone());
 
@@ -843,12 +843,11 @@ impl ScannerUI {
                         self.status_message = format!("Found product: {}", product.name);
                         self.error_message = None;
                     }
-                }
             }
             Ok(None) => {
                 // Found barcode but no matching product
-                if let Ok(frame) = self.scanner_service.camera().capture_frame() {
-                    if let Ok(scan_result) = self.scanner_service.decoder().decode(&frame) {
+                if let Ok(frame) = self.scanner_service.camera().capture_frame()
+                    && let Ok(scan_result) = self.scanner_service.decoder().decode(&frame) {
                         self.current_scan = Some(scan_result.clone());
                         self.current_product = None;
 
@@ -864,7 +863,6 @@ impl ScannerUI {
                             format!("Barcode found: {} (no product match)", scan_result.barcode);
                         self.error_message = None;
                     }
-                }
             }
             Err(e) => {
                 self.error_message = Some(format!("Scan failed: {}", e));

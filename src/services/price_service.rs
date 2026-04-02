@@ -241,7 +241,7 @@ impl PriceService {
 
         let mut sorted_prices = prices.clone();
         sorted_prices.sort_by(|a, b| a.partial_cmp(b).unwrap());
-        let median_price = if sorted_prices.len() % 2 == 0 {
+        let median_price = if sorted_prices.len().is_multiple_of(2) {
             let mid = sorted_prices.len() / 2;
             (sorted_prices[mid - 1] + sorted_prices[mid]) / 2.0
         } else {
@@ -274,8 +274,8 @@ impl PriceService {
         let mut product_latest_price: HashMap<String, PriceRecord> = HashMap::new();
 
         for price in self.price_records.values() {
-            if let Some(ref product_id) = price.product_id {
-                if price.timestamp > recent_cutoff && price.verification_status == "verified" {
+            if let Some(ref product_id) = price.product_id
+                && price.timestamp > recent_cutoff && price.verification_status == "verified" {
                     *product_activity.entry(product_id.clone()).or_insert(0) += 1;
 
                     if let Some(existing) = product_latest_price.get(product_id) {
@@ -286,7 +286,6 @@ impl PriceService {
                         product_latest_price.insert(product_id.clone(), price.clone());
                     }
                 }
-            }
         }
 
         let mut trending: Vec<TrendingPrice> = product_activity
@@ -317,8 +316,8 @@ impl PriceService {
         let mut triggered_alerts = Vec::new();
 
         for (product_id, target_price) in target_prices {
-            if let Ok(Some(current_lowest)) = self.get_current_lowest_price(product_id) {
-                if current_lowest.price <= *target_price {
+            if let Ok(Some(current_lowest)) = self.get_current_lowest_price(product_id)
+                && current_lowest.price <= *target_price {
                     triggered_alerts.push(PriceAlert {
                         product_id: product_id.clone(),
                         target_price: *target_price,
@@ -327,7 +326,6 @@ impl PriceService {
                         timestamp: current_lowest.timestamp,
                     });
                 }
-            }
         }
 
         Ok(triggered_alerts)

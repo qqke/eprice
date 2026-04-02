@@ -255,11 +255,10 @@ impl PriceMonitor {
     /// Generate mock prices for testing (simulates database query)
     fn generate_mock_prices(&self, product_id: &str) -> Result<Vec<PriceRecord>, AlertError> {
         // Check cache first
-        if let Ok(cache) = self.price_cache.lock() {
-            if let Some(cached_prices) = cache.get(product_id) {
+        if let Ok(cache) = self.price_cache.lock()
+            && let Some(cached_prices) = cache.get(product_id) {
                 return Ok(cached_prices.clone());
             }
-        }
 
         // Generate mock prices based on product ID
         let base_price = match product_id {

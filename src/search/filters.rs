@@ -229,8 +229,8 @@ impl SearchFilters {
     /// Validate filter consistency
     pub fn validate(&self) -> Result<(), String> {
         // Validate price range
-        if let Some(ref price_range) = self.price_range {
-            if let (Some(min), Some(max)) = (price_range.min_price, price_range.max_price) {
+        if let Some(ref price_range) = self.price_range
+            && let (Some(min), Some(max)) = (price_range.min_price, price_range.max_price) {
                 if min > max {
                     return Err("Minimum price cannot be greater than maximum price".to_string());
                 }
@@ -238,23 +238,19 @@ impl SearchFilters {
                     return Err("Prices cannot be negative".to_string());
                 }
             }
-        }
 
         // Validate rating filter
-        if let Some(ref rating) = self.rating_filter {
-            if rating.min_rating < 0.0 || rating.min_rating > 5.0 {
+        if let Some(ref rating) = self.rating_filter
+            && (rating.min_rating < 0.0 || rating.min_rating > 5.0) {
                 return Err("Rating must be between 0 and 5".to_string());
             }
-        }
 
         // Validate time range
-        if let Some(ref time_range) = self.time_range {
-            if let (Some(start), Some(end)) = (time_range.start_date, time_range.end_date) {
-                if start > end {
+        if let Some(ref time_range) = self.time_range
+            && let (Some(start), Some(end)) = (time_range.start_date, time_range.end_date)
+                && start > end {
                     return Err("Start date cannot be after end date".to_string());
                 }
-            }
-        }
 
         Ok(())
     }

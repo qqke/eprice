@@ -214,15 +214,11 @@ fn persist_remembered_session() -> std::io::Result<()> {
 }
 
 pub fn load_remembered_session_from_disk() {
-    if let Ok(path) = remembered_session_file() {
-        if crate::utils::file_utils::file_exists(&path) {
-            if let Ok(bytes) = load_from_file(&path) {
-                if let Ok(value) = serde_json::from_slice::<Option<String>>(&bytes) {
-                    if let Ok(mut guard) = REMEMBERED_SESSION_ID.lock() {
+    if let Ok(path) = remembered_session_file()
+        && crate::utils::file_utils::file_exists(&path)
+            && let Ok(bytes) = load_from_file(&path)
+                && let Ok(value) = serde_json::from_slice::<Option<String>>(&bytes)
+                    && let Ok(mut guard) = REMEMBERED_SESSION_ID.lock() {
                         *guard = value;
                     }
-                }
-            }
-        }
-    }
 }

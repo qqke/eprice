@@ -151,11 +151,10 @@ impl SearchEngine {
 
         // Check cache first
         let cache_key = self.generate_cache_key(&query);
-        if let Some((cached_result, cached_time)) = self.search_cache.get(&cache_key) {
-            if self.is_cache_valid(cached_time) {
+        if let Some((cached_result, cached_time)) = self.search_cache.get(&cache_key)
+            && self.is_cache_valid(cached_time) {
                 return Ok(cached_result.clone());
             }
-        }
 
         // Perform search
         let mut items = Vec::new();
@@ -168,11 +167,9 @@ impl SearchEngine {
         for (product, base_score) in matching_products {
             if let Some(result_item) =
                 self.create_search_result_item(product, base_score, &query)?
-            {
-                if result_item.relevance_score >= query.min_relevance_score {
+                && result_item.relevance_score >= query.min_relevance_score {
                     items.push(result_item);
                 }
-            }
         }
 
         // Sort results

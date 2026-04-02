@@ -81,8 +81,8 @@ impl ReceiptParser {
 
         // Try to identify store from known patterns
         for (store_name, pattern) in &self.store_patterns {
-            if let Ok(regex) = Regex::new(&pattern.name_pattern) {
-                if regex.is_match(text) {
+            if let Ok(regex) = Regex::new(&pattern.name_pattern)
+                && regex.is_match(text) {
                     return Ok(StoreInfo {
                         name: store_name.clone(),
                         branch: self.extract_branch_info(text, pattern)?,
@@ -90,7 +90,6 @@ impl ReceiptParser {
                         phone: self.extract_phone_info(text)?,
                     });
                 }
-            }
         }
 
         // Fallback: use first non-empty line as store name
@@ -124,8 +123,8 @@ impl ReceiptParser {
                 continue;
             }
 
-            if let Some(captures) = item_pattern.captures(line) {
-                if let (Some(name_match), Some(price_match)) = (captures.get(1), captures.get(2)) {
+            if let Some(captures) = item_pattern.captures(line)
+                && let (Some(name_match), Some(price_match)) = (captures.get(1), captures.get(2)) {
                     let name = name_match.as_str().trim().to_string();
                     let price_str = price_match.as_str().replace(',', "");
 
@@ -139,7 +138,6 @@ impl ReceiptParser {
                         items.push(item);
                     }
                 }
-            }
         }
 
         log::info!("Extracted {} items from receipt", items.len());
@@ -161,23 +159,20 @@ impl ReceiptParser {
             Regex::new(r"(?i)(合計|合计|total|grand total|final)\s*[¥$€£]?([0-9,]+\.?[0-9]*)")?;
 
         for line in text.lines() {
-            if let Some(captures) = subtotal_pattern.captures(line) {
-                if let Some(amount) = captures.get(2) {
+            if let Some(captures) = subtotal_pattern.captures(line)
+                && let Some(amount) = captures.get(2) {
                     subtotal = amount.as_str().replace(',', "").parse().ok();
                 }
-            }
 
-            if let Some(captures) = tax_pattern.captures(line) {
-                if let Some(amount) = captures.get(2) {
+            if let Some(captures) = tax_pattern.captures(line)
+                && let Some(amount) = captures.get(2) {
                     tax = amount.as_str().replace(',', "").parse().ok();
                 }
-            }
 
-            if let Some(captures) = total_pattern.captures(line) {
-                if let Some(amount) = captures.get(2) {
+            if let Some(captures) = total_pattern.captures(line)
+                && let Some(amount) = captures.get(2) {
                     total = amount.as_str().replace(',', "").parse().ok();
                 }
-            }
         }
 
         Ok(ReceiptTotals {
@@ -191,8 +186,8 @@ impl ReceiptParser {
     /// Extract date and time from receipt text
     fn extract_datetime(&self, text: &str) -> Result<Option<DateTime<Utc>>> {
         for pattern in &self.date_patterns {
-            if let Ok(regex) = Regex::new(pattern) {
-                if let Some(date_match) = regex.find(text) {
+            if let Ok(regex) = Regex::new(pattern)
+                && let Some(date_match) = regex.find(text) {
                     // Try to parse the date (simplified)
                     // In a real implementation, this would handle various date formats
                     if let Ok(naive_dt) = NaiveDateTime::parse_from_str(
@@ -202,7 +197,6 @@ impl ReceiptParser {
                         return Ok(Some(DateTime::from_naive_utc_and_offset(naive_dt, Utc)));
                     }
                 }
-            }
         }
 
         // Fallback to current time if no date found

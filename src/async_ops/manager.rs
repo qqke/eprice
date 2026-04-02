@@ -433,9 +433,9 @@ impl AsyncManager {
                     .push(operation_id.to_string());
 
                 // Handle retry if enabled
-                if self.auto_retry_enabled {
-                    if let Some(operation) = self.operations.lock().unwrap().get_mut(operation_id) {
-                        if operation.can_retry() {
+                if self.auto_retry_enabled
+                    && let Some(operation) = self.operations.lock().unwrap().get_mut(operation_id)
+                        && operation.can_retry() {
                             operation.increment_retry();
                             self.operation_queue
                                 .lock()
@@ -445,8 +445,6 @@ impl AsyncManager {
                             self.process_queue();
                             return;
                         }
-                    }
-                }
 
                 self.notify_status_change(operation_id, OperationStatus::Failed, None);
             }
@@ -520,8 +518,8 @@ impl AsyncManager {
 
     fn update_stats_for_completion(&self, operation_id: &str) {
         let operations = self.operations.lock().unwrap();
-        if let Some(operation) = operations.get(operation_id) {
-            if let Some(duration) = operation.duration_seconds() {
+        if let Some(operation) = operations.get(operation_id)
+            && let Some(duration) = operation.duration_seconds() {
                 let mut stats = self.stats.lock().unwrap();
 
                 // Update average execution time
@@ -531,7 +529,6 @@ impl AsyncManager {
                 stats.average_execution_time_ms =
                     (total_time + duration as f64 * 1000.0) / stats.completed_operations as f64;
             }
-        }
     }
 }
 
@@ -599,11 +596,10 @@ impl OperationHandle {
                 return Ok(result);
             }
 
-            if let Some(timeout) = timeout_duration {
-                if start.elapsed() > timeout {
+            if let Some(timeout) = timeout_duration
+                && start.elapsed() > timeout {
                     return Err("Operation timed out".to_string());
                 }
-            }
 
             std::thread::sleep(Duration::from_millis(100));
         }

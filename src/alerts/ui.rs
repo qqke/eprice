@@ -177,22 +177,20 @@ impl AlertUI {
                 });
 
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    if ui.button("删除").clicked() {
-                        if let Err(e) = self.alert_service.remove_alert(&alert.id) {
+                    if ui.button("删除").clicked()
+                        && let Err(e) = self.alert_service.remove_alert(&alert.id) {
                             self.error_message = Some(format!("删除提醒失败: {}", e));
                         }
-                    }
 
                     let toggle_text = if alert.is_active { "暂停" } else { "激活" };
-                    if ui.button(toggle_text).clicked() {
-                        if let Err(e) = self
+                    if ui.button(toggle_text).clicked()
+                        && let Err(e) = self
                             .alert_service
                             .monitor_mut()
                             .update_alert_active(&alert.id, !alert.is_active)
                         {
                             self.error_message = Some(format!("更新提醒状态失败: {}", e));
                         }
-                    }
 
                     if ui.button("编辑").clicked() {
                         self.selected_alert_id = Some(alert.id.clone());

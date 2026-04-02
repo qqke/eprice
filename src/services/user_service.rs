@@ -211,26 +211,24 @@ impl UserService {
             self.validate_username(new_username)?;
 
             // Check if username is already taken by another user
-            if let Some(existing_id) = self.username_to_id.get(new_username) {
-                if existing_id != user_id {
+            if let Some(existing_id) = self.username_to_id.get(new_username)
+                && existing_id != user_id {
                     return Err(ServiceError::BusinessRuleViolation(
                         "Username already exists".to_string(),
                     ));
                 }
-            }
         }
 
         if let Some(ref new_email) = email {
             self.validate_email(new_email)?;
 
             // Check if email is already taken by another user
-            if let Some(existing_id) = self.email_to_id.get(new_email) {
-                if existing_id != user_id {
+            if let Some(existing_id) = self.email_to_id.get(new_email)
+                && existing_id != user_id {
                     return Err(ServiceError::BusinessRuleViolation(
                         "Email already exists".to_string(),
                     ));
                 }
-            }
         }
 
         let user = self
