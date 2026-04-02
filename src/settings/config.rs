@@ -7,6 +7,7 @@ pub struct AppConfig {
     pub notification_settings: NotificationSettings,
     pub monitoring_settings: MonitoringSettings,
     pub data_settings: DataSettings,
+    pub backend_settings: BackendSettings,
 }
 
 /// UI display and interaction settings
@@ -49,6 +50,15 @@ pub struct DataSettings {
     pub max_backup_files: u32,
     pub enable_cloud_sync: bool,
     pub data_retention_days: u32,
+}
+
+/// Cloud backend settings
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BackendSettings {
+    pub supabase_url: String,
+    pub supabase_anon_key: String,
+    pub supabase_project_ref: String,
+    pub enable_realtime_sync: bool,
 }
 
 // (removed duplicate AppConfig redefinition)
@@ -99,6 +109,17 @@ impl Default for DataSettings {
             max_backup_files: 7,
             enable_cloud_sync: false,
             data_retention_days: 365,
+        }
+    }
+}
+
+impl Default for BackendSettings {
+    fn default() -> Self {
+        Self {
+            supabase_url: String::new(),
+            supabase_anon_key: String::new(),
+            supabase_project_ref: String::new(),
+            enable_realtime_sync: true,
         }
     }
 }
@@ -160,6 +181,13 @@ impl AppConfig {
 
         if self.data_settings.max_backup_files < 1 {
             return Err("Must keep at least 1 backup file".to_string());
+        }
+
+        if self.backend_settings.enable_realtime_sync
+            && (self.backend_settings.supabase_url.trim().is_empty()
+                || self.backend_settings.supabase_anon_key.trim().is_empty())
+        {
+            return Err("Supabase URL and anon key are required when realtime sync is enabled".to_string());
         }
 
         Ok(())

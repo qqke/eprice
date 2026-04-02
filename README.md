@@ -1,4 +1,4 @@
-# eprice - Local Price Comparison Application
+# eprice - Supabase-Backed Price Comparison Workspace
 
 <div align="center">
 
@@ -6,7 +6,7 @@
 [![egui](https://img.shields.io/badge/egui-0.32.3-blue.svg)](https://github.com/emilk/egui)
 [![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](#license)
 
-A modern cross-platform price comparison application for offline retail stores in Japan.
+A modern cross-platform price comparison workspace for offline retail stores in Japan, built around Supabase auth and cloud data sync.
 
 [Features](#features) • [Quick Start](#quick-start) • [Architecture](#architecture) • [Development](#development) • [Contributing](#contributing)
 
@@ -14,7 +14,7 @@ A modern cross-platform price comparison application for offline retail stores i
 
 ## Overview
 
-eprice is a community-driven price comparison application designed specifically for offline retail stores in Japan. It empowers users to quickly compare product prices across different physical stores, with innovative features like OCR-powered receipt scanning for automatic price data entry.
+eprice is a community-driven price comparison application designed specifically for offline retail stores in Japan. It now uses Supabase as the primary backend for authentication, profiles, price contributions, and community data.
 
 ### Key Value Propositions
 
@@ -156,9 +156,8 @@ uuid = { version = "1.0", features = ["v4", "serde", "js"] }
 
 ### Planned Dependencies (Currently Disabled)
 ```toml
-# Database layer
-sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "sqlite", "chrono", "uuid"] }
-tokio = { version = "1.0", features = ["full"] }
+# Backend integration
+sqlx = { version = "0.9.0-alpha.1", default-features = false }
 
 # OCR functionality
 leptess = "0.14"
@@ -210,7 +209,7 @@ graph TB
         Models --> Store[Store Model]
         Models --> Price[Price Record]
         Models --> User[User Model]
-        Persistence --> SQLite[(SQLite Database)]
+        Persistence --> Supabase[(Supabase)]
         Persistence --> Cache[Local Cache]
     end
     

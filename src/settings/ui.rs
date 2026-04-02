@@ -17,6 +17,7 @@ enum SettingsTab {
     Notifications,
     Monitoring,
     Data,
+    Backend,
     About,
 }
 
@@ -100,6 +101,12 @@ impl SettingsUI {
                 self.current_tab = SettingsTab::Data;
             }
             if ui
+                .selectable_label(self.current_tab == SettingsTab::Backend, "Supabase")
+                .clicked()
+            {
+                self.current_tab = SettingsTab::Backend;
+            }
+            if ui
                 .selectable_label(self.current_tab == SettingsTab::About, "关于")
                 .clicked()
             {
@@ -115,6 +122,7 @@ impl SettingsUI {
             SettingsTab::Notifications => self.render_notification_settings(ui),
             SettingsTab::Monitoring => self.render_monitoring_settings(ui),
             SettingsTab::Data => self.render_data_settings(ui),
+            SettingsTab::Backend => self.render_backend_settings(ui),
             SettingsTab::About => self.render_about_tab(ui),
         });
 
@@ -404,6 +412,44 @@ impl SettingsUI {
                     self.import_data();
                 }
             });
+        });
+    }
+
+    fn render_backend_settings(&mut self, ui: &mut Ui) {
+        ui.group(|ui| {
+            ui.label(RichText::new("Supabase backend").strong());
+
+            ui.horizontal(|ui| {
+                ui.label("Project ref:");
+                ui.text_edit_singleline(&mut self.config.backend_settings.supabase_project_ref);
+            });
+
+            ui.horizontal(|ui| {
+                ui.label("Supabase URL:");
+                ui.text_edit_singleline(&mut self.config.backend_settings.supabase_url);
+            });
+
+            ui.horizontal(|ui| {
+                ui.label("Anon key:");
+                ui.add(
+                    egui::TextEdit::singleline(
+                        &mut self.config.backend_settings.supabase_anon_key,
+                    )
+                    .password(true),
+                );
+            });
+
+            ui.checkbox(
+                &mut self.config.backend_settings.enable_realtime_sync,
+                "Enable realtime sync",
+            );
+
+            ui.label(
+                egui::RichText::new(
+                    "This panel stores the values used by the Supabase-first app shell.",
+                )
+                .small(),
+            );
         });
     }
 

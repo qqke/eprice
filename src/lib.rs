@@ -1,11 +1,10 @@
 #![warn(clippy::all, rust_2018_idioms)]
 
 pub mod alerts;
+pub mod backend;
 pub mod app;
 pub mod async_ops;
 pub mod auth;
-#[cfg(not(target_arch = "wasm32"))]
-pub mod database;
 pub mod error;
 pub mod models;
 pub mod ocr;

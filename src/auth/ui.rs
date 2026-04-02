@@ -1,641 +1,342 @@
-#[cfg(not(target_arch = "wasm32"))]
+use crate::auth::session::{
+    get_remembered_session, load_remembered_session_from_disk, set_remembered_session,
+    GLOBAL_SESSION_MANAGER,
+};
 use crate::auth::AuthManager;
 use crate::auth::SessionManager;
-#[cfg(not(target_arch = "wasm32"))]
-use crate::auth::models::LoginRequest;
-use crate::auth::models::RegisterRequest;
-#[cfg(not(target_arch = "wasm32"))]
-use crate::auth::session::set_remembered_session;
-use crate::auth::session::{
-    GLOBAL_SESSION_MANAGER, get_remembered_session, load_remembered_session_from_disk,
-};
-#[cfg(not(target_arch = "wasm32"))]
-use crate::database::DatabaseManager;
+use crate::auth::models::{LoginRequest, RegisterRequest};
 use crate::models::User;
 use crate::utils::validate_email;
 use egui;
-#[cfg(not(target_arch = "wasm32"))]
 use std::sync::Arc;
 
 /// Authentication state for UI management
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub enum AuthState {
+    #[default]
     LoggedOut,
     LoggingIn,
     Registering,
     LoggedIn(User),
 }
 
-impl Default for AuthState {
-    fn default() -> Self {
-        Self::LoggedOut
-    }
-}
-
 /// Authentication UI component
-#[derive(Default)]
 pub struct AuthUI {
     pub auth_state: AuthState,
     pub session_manager: SessionManager,
     pub current_session_id: Option<String>,
-    #[cfg(not(target_arch = "wasm32"))]
-    pub auth_manager: Option<Arc<AuthManager>>,
-
-    // Login form fields
+    pub auth_manager: Arc<AuthManager>,
     pub login_email: String,
     pub login_password: String,
     pub login_remember_me: bool,
     pub login_error: Option<String>,
-
-    // Registration form fields
     pub register_username: String,
     pub register_email: String,
     pub register_password: String,
     pub register_password_confirm: String,
     pub register_error: Option<String>,
-
-    // UI state
     pub show_auth_window: bool,
 }
 
-// Default derive already provided
+impl Default for AuthUI {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl AuthUI {
     pub fn new() -> Self {
-        // Attempt restore remembered session at creation
-        let mut ui = Self { ..Self::default() };
+        let mut ui = Self {
+            auth_state: AuthState::LoggedOut,
+            session_manager: SessionManager::new(),
+            current_session_id: None,
+            auth_manager: Arc::new(AuthManager::new()),
+            login_email: String::new(),
+            login_password: String::new(),
+            login_remember_me: false,
+            login_error: None,
+            register_username: String::new(),
+            register_email: String::new(),
+            register_password: String::new(),
+            register_password_confirm: String::new(),
+            register_error: None,
+            show_auth_window: false,
+        };
+
         load_remembered_session_from_disk();
         ui.try_restore_session();
         ui
     }
 
-    /// Initialize the AuthUI with database connection (native only)
-    #[cfg(not(target_arch = "wasm32"))]
-    pub async fn with_database(
-        database_manager: Arc<DatabaseManager>,
-    ) -> Result<Self, Box<dyn std::error::Error>> {
-        // Initialize database
-        let database = crate::database::Database::new(database_manager.pool().clone());
-        database.initialize().await?;
-
-        // Create auth manager
-        let auth_manager = Arc::new(AuthManager::new(database_manager.pool().clone()));
-
-        let mut ui = Self {
-            auth_manager: Some(auth_manager),
-            ..Self::default()
-        };
-
-        load_remembered_session_from_disk();
-        ui.try_restore_session();
-        Ok(ui)
-    }
-
-    /// Initialize the AuthUI with database connection using a new Tokio runtime (native only)
-    #[cfg(not(target_arch = "wasm32"))]
-    pub fn with_database_sync(
-        database_manager: Arc<DatabaseManager>,
-    ) -> Result<Self, Box<dyn std::error::Error>> {
-        let rt = tokio::runtime::Runtime::new()?;
-        rt.block_on(Self::with_database(database_manager))
-    }
-
-    /// Show the authentication window
     pub fn show_auth_dialog(&mut self, ctx: &egui::Context) {
         if !self.show_auth_window {
             return;
         }
 
-        egui::Window::new("🔐 用户认证")
+        egui::Window::new("Account access")
             .collapsible(false)
             .resizable(false)
             .anchor(egui::Align2::CENTER_CENTER, egui::vec2(0.0, 0.0))
-            .default_size(egui::vec2(400.0, 500.0))
+            .default_size(egui::vec2(440.0, 560.0))
             .show(ctx, |ui| {
-                // 添加背景色和边框
-                ui.style_mut().visuals.window_fill = egui::Color32::from_gray(248);
+                ui.style_mut().visuals.window_fill = egui::Color32::from_rgb(18, 18, 20);
                 ui.style_mut().visuals.window_stroke =
-                    egui::Stroke::new(1.0, egui::Color32::from_gray(200));
-
+                    egui::Stroke::new(1.0, egui::Color32::from_gray(60));
                 self.render_auth_content(ui);
             });
     }
 
-    /// Render the main authentication content
     fn render_auth_content(&mut self, ui: &mut egui::Ui) {
-        match &self.auth_state.clone() {
-            AuthState::LoggedOut => {
-                self.render_logged_out_view(ui);
-            }
-            AuthState::LoggingIn => {
-                self.render_login_form(ui);
-            }
-            AuthState::Registering => {
-                self.render_register_form(ui);
-            }
-            AuthState::LoggedIn(user) => {
-                self.render_logged_in_view(ui, user);
-            }
+        match self.auth_state.clone() {
+            AuthState::LoggedOut => self.render_logged_out_view(ui),
+            AuthState::LoggingIn => self.render_login_form(ui),
+            AuthState::Registering => self.render_register_form(ui),
+            AuthState::LoggedIn(user) => self.render_logged_in_view(ui, &user),
         }
     }
 
-    /// Render the initial view when user is logged out
     fn render_logged_out_view(&mut self, ui: &mut egui::Ui) {
         ui.vertical_centered(|ui| {
-            // 添加应用图标和标题
-            ui.add_space(20.0);
-            ui.heading("🛒 eprice");
-            ui.add_space(5.0);
+            ui.add_space(16.0);
+            ui.heading("eprice");
             ui.label(
-                egui::RichText::new("智能价格比较平台")
-                    .size(14.0)
-                    .color(egui::Color32::from_gray(100)),
+                egui::RichText::new("Supabase-ready account system")
+                    .color(egui::Color32::from_gray(150)),
             );
-            ui.add_space(30.0);
+            ui.add_space(24.0);
+            ui.label("Choose an action");
+            ui.add_space(12.0);
 
-            ui.label(egui::RichText::new("请选择操作:").size(16.0));
-            ui.add_space(20.0);
-
-            // 使用更大的按钮和更好的样式
-            let button_size = egui::vec2(200.0, 40.0);
-
+            let button_size = egui::vec2(220.0, 38.0);
             if ui
-                .add_sized(button_size, egui::Button::new("🔑 登录"))
+                .add_sized(button_size, egui::Button::new("Sign in"))
                 .clicked()
             {
                 self.auth_state = AuthState::LoggingIn;
                 self.clear_form_errors();
             }
-            ui.add_space(10.0);
-
+            ui.add_space(8.0);
             if ui
-                .add_sized(button_size, egui::Button::new("📝 注册"))
+                .add_sized(button_size, egui::Button::new("Create account"))
                 .clicked()
             {
                 self.auth_state = AuthState::Registering;
                 self.clear_form_errors();
             }
-            ui.add_space(10.0);
-
+            ui.add_space(8.0);
             if ui
-                .add_sized(button_size, egui::Button::new("👤 游客模式"))
+                .add_sized(button_size, egui::Button::new("Close"))
                 .clicked()
             {
                 self.show_auth_window = false;
             }
-
-            ui.add_space(20.0);
         });
     }
 
-    /// Render the login form
     fn render_login_form(&mut self, ui: &mut egui::Ui) {
-        ui.vertical_centered(|ui| {
-            ui.add_space(20.0);
-            ui.heading("🔑 用户登录");
-            ui.add_space(30.0);
+        ui.heading("Sign in");
+        ui.add_space(12.0);
 
-            // 创建表单容器
-            ui.group(|ui| {
-                ui.set_min_size(egui::vec2(300.0, 0.0));
-                ui.vertical_centered(|ui| {
-                    ui.add_space(20.0);
+        ui.label("Email");
+        ui.text_edit_singleline(&mut self.login_email);
+        ui.add_space(8.0);
 
-                    // Email field
-                    ui.horizontal(|ui| {
-                        ui.allocate_ui_with_layout(
-                            egui::vec2(80.0, 0.0),
-                            egui::Layout::left_to_right(egui::Align::Center),
-                            |ui| {
-                                ui.label(egui::RichText::new("📧 邮箱:").size(14.0));
-                            },
-                        );
-                        ui.add(
-                            egui::TextEdit::singleline(&mut self.login_email)
-                                .hint_text("请输入邮箱地址")
-                                .desired_width(200.0),
-                        );
-                    });
-                    ui.add_space(15.0);
+        ui.label("Password");
+        ui.add(egui::TextEdit::singleline(&mut self.login_password).password(true));
+        ui.checkbox(&mut self.login_remember_me, "Remember me");
+        ui.add_space(8.0);
 
-                    // Password field
-                    ui.horizontal(|ui| {
-                        ui.allocate_ui_with_layout(
-                            egui::vec2(80.0, 0.0),
-                            egui::Layout::left_to_right(egui::Align::Center),
-                            |ui| {
-                                ui.label(egui::RichText::new("🔒 密码:").size(14.0));
-                            },
-                        );
-                        ui.add(
-                            egui::TextEdit::singleline(&mut self.login_password)
-                                .password(true)
-                                .hint_text("请输入密码")
-                                .desired_width(200.0),
-                        );
-                    });
-                    ui.add_space(15.0);
+        if let Some(error) = &self.login_error {
+            ui.colored_label(egui::Color32::from_rgb(220, 90, 90), error);
+        }
 
-                    // Remember me checkbox
-                    ui.horizontal(|ui| {
-                        ui.add_space(50.0);
-                        ui.checkbox(&mut self.login_remember_me, "记住我");
-                    });
-
-                    ui.add_space(20.0);
-                });
-            });
-
-            ui.add_space(20.0);
-
-            // Error message
-            if let Some(error) = &self.login_error {
-                ui.colored_label(
-                    egui::Color32::from_rgb(220, 53, 69),
-                    format!("⚠️ {}", error),
-                );
-                ui.add_space(10.0);
+        ui.horizontal(|ui| {
+            if ui.button("Back").clicked() {
+                self.auth_state = AuthState::LoggedOut;
+                self.clear_login_form();
             }
-
-            // Action buttons
-            ui.horizontal(|ui| {
-                if ui
-                    .add_sized(egui::vec2(100.0, 35.0), egui::Button::new("🔑 登录"))
-                    .clicked()
-                {
-                    self.handle_login();
-                }
-                ui.add_space(10.0);
-                if ui
-                    .add_sized(egui::vec2(100.0, 35.0), egui::Button::new("⬅️ 返回"))
-                    .clicked()
-                {
-                    self.auth_state = AuthState::LoggedOut;
-                    self.clear_login_form();
-                }
-            });
-
-            ui.add_space(15.0);
-
-            if ui.link("没有账户？点击注册").clicked() {
-                self.auth_state = AuthState::Registering;
-                self.clear_form_errors();
+            if ui.button("Sign in").clicked() {
+                self.handle_login();
             }
-
-            ui.add_space(20.0);
         });
     }
 
-    /// Render the registration form
     fn render_register_form(&mut self, ui: &mut egui::Ui) {
-        ui.vertical_centered(|ui| {
-            ui.add_space(20.0);
-            ui.heading("📝 用户注册");
-            ui.add_space(30.0);
+        ui.heading("Create account");
+        ui.add_space(12.0);
 
-            // 创建表单容器
-            ui.group(|ui| {
-                ui.set_min_size(egui::vec2(300.0, 0.0));
-                ui.vertical_centered(|ui| {
-                    ui.add_space(20.0);
+        ui.label("Username");
+        ui.text_edit_singleline(&mut self.register_username);
+        ui.label("Email");
+        ui.text_edit_singleline(&mut self.register_email);
+        ui.label("Password");
+        ui.add(egui::TextEdit::singleline(&mut self.register_password).password(true));
+        ui.label("Confirm password");
+        ui.add(egui::TextEdit::singleline(&mut self.register_password_confirm).password(true));
+        ui.add_space(8.0);
 
-                    // Username field
-                    ui.horizontal(|ui| {
-                        ui.allocate_ui_with_layout(
-                            egui::vec2(80.0, 0.0),
-                            egui::Layout::left_to_right(egui::Align::Center),
-                            |ui| {
-                                ui.label(egui::RichText::new("👤 用户名:").size(14.0));
-                            },
-                        );
-                        ui.add(
-                            egui::TextEdit::singleline(&mut self.register_username)
-                                .hint_text("请输入用户名")
-                                .desired_width(200.0),
-                        );
-                    });
-                    ui.add_space(15.0);
+        if let Some(error) = &self.register_error {
+            ui.colored_label(egui::Color32::from_rgb(220, 90, 90), error);
+        }
 
-                    // Email field
-                    ui.horizontal(|ui| {
-                        ui.allocate_ui_with_layout(
-                            egui::vec2(80.0, 0.0),
-                            egui::Layout::left_to_right(egui::Align::Center),
-                            |ui| {
-                                ui.label(egui::RichText::new("📧 邮箱:").size(14.0));
-                            },
-                        );
-                        ui.add(
-                            egui::TextEdit::singleline(&mut self.register_email)
-                                .hint_text("请输入邮箱地址")
-                                .desired_width(200.0),
-                        );
-                    });
-                    ui.add_space(15.0);
-
-                    // Password field
-                    ui.horizontal(|ui| {
-                        ui.allocate_ui_with_layout(
-                            egui::vec2(80.0, 0.0),
-                            egui::Layout::left_to_right(egui::Align::Center),
-                            |ui| {
-                                ui.label(egui::RichText::new("🔒 密码:").size(14.0));
-                            },
-                        );
-                        ui.add(
-                            egui::TextEdit::singleline(&mut self.register_password)
-                                .password(true)
-                                .hint_text("请输入密码")
-                                .desired_width(200.0),
-                        );
-                    });
-                    ui.add_space(15.0);
-
-                    // Confirm password field
-                    ui.horizontal(|ui| {
-                        ui.allocate_ui_with_layout(
-                            egui::vec2(80.0, 0.0),
-                            egui::Layout::left_to_right(egui::Align::Center),
-                            |ui| {
-                                ui.label(egui::RichText::new("🔒 确认密码:").size(14.0));
-                            },
-                        );
-                        ui.add(
-                            egui::TextEdit::singleline(&mut self.register_password_confirm)
-                                .password(true)
-                                .hint_text("请再次输入密码")
-                                .desired_width(200.0),
-                        );
-                    });
-
-                    ui.add_space(20.0);
-                });
-            });
-
-            ui.add_space(20.0);
-
-            // Error message
-            if let Some(error) = &self.register_error {
-                ui.colored_label(
-                    egui::Color32::from_rgb(220, 53, 69),
-                    format!("⚠️ {}", error),
-                );
-                ui.add_space(10.0);
+        ui.horizontal(|ui| {
+            if ui.button("Back").clicked() {
+                self.auth_state = AuthState::LoggedOut;
+                self.clear_register_form();
             }
-
-            // Action buttons
-            ui.horizontal(|ui| {
-                if ui
-                    .add_sized(egui::vec2(100.0, 35.0), egui::Button::new("📝 注册"))
-                    .clicked()
-                {
-                    self.handle_register();
-                }
-                ui.add_space(10.0);
-                if ui
-                    .add_sized(egui::vec2(100.0, 35.0), egui::Button::new("⬅️ 返回"))
-                    .clicked()
-                {
-                    self.auth_state = AuthState::LoggedOut;
-                    self.clear_register_form();
-                }
-            });
-
-            ui.add_space(15.0);
-
-            if ui.link("已有账户？点击登录").clicked() {
-                self.auth_state = AuthState::LoggingIn;
-                self.clear_form_errors();
+            if ui.button("Create").clicked() {
+                self.handle_register();
             }
-
-            ui.add_space(20.0);
         });
     }
 
-    /// Render the logged in user view
     fn render_logged_in_view(&mut self, ui: &mut egui::Ui, user: &User) {
-        ui.vertical_centered(|ui| {
-            ui.add_space(20.0);
-            ui.heading("👤 用户信息");
-            ui.add_space(30.0);
+        ui.heading("Account");
+        ui.label(format!("Username: {}", user.username));
+        ui.label(format!("Email: {}", user.email));
+        ui.label(format!("Reputation: {}", user.reputation_score));
+        ui.label(format!(
+            "Last login: {}",
+            user.last_login
+                .map(|ts| ts.format("%Y-%m-%d %H:%M:%S").to_string())
+                .unwrap_or_else(|| "Never".to_string())
+        ));
 
-            // 创建用户信息卡片
-            ui.group(|ui| {
-                ui.set_min_size(egui::vec2(300.0, 0.0));
-                ui.vertical_centered(|ui| {
-                    ui.add_space(20.0);
-
-                    ui.label(
-                        egui::RichText::new(format!("🎉 欢迎, {}!", user.username))
-                            .size(18.0)
-                            .color(egui::Color32::from_rgb(40, 167, 69)),
-                    );
-                    ui.add_space(15.0);
-
-                    ui.horizontal(|ui| {
-                        ui.label(egui::RichText::new("📧 邮箱:").size(14.0));
-                        ui.add_space(10.0);
-                        ui.label(user.email.to_string());
-                    });
-                    ui.add_space(10.0);
-
-                    ui.horizontal(|ui| {
-                        ui.label(egui::RichText::new("⭐ 信誉分数:").size(14.0));
-                        ui.add_space(10.0);
-                        ui.label(user.reputation_score.to_string());
-                    });
-
-                    if let Some(last_login) = user.last_login {
-                        ui.add_space(10.0);
-                        ui.horizontal(|ui| {
-                            ui.label(egui::RichText::new("🕒 上次登录:").size(14.0));
-                            ui.add_space(10.0);
-                            ui.label(last_login.format("%Y-%m-%d %H:%M:%S").to_string());
-                        });
-                    }
-
-                    ui.add_space(20.0);
-                });
-            });
-
-            ui.add_space(20.0);
-
-            ui.horizontal(|ui| {
-                if ui
-                    .add_sized(egui::vec2(120.0, 35.0), egui::Button::new("🚀 继续使用"))
-                    .clicked()
-                {
-                    self.show_auth_window = false;
-                }
-                ui.add_space(10.0);
-                if ui
-                    .add_sized(egui::vec2(120.0, 35.0), egui::Button::new("🚪 退出登录"))
-                    .clicked()
-                {
-                    self.handle_logout();
-                }
-            });
-
-            ui.add_space(20.0);
+        ui.add_space(12.0);
+        ui.horizontal(|ui| {
+            if ui.button("Close").clicked() {
+                self.show_auth_window = false;
+            }
+            if ui.button("Logout").clicked() {
+                self.handle_logout();
+            }
         });
     }
 
-    /// Handle login attempt
     fn handle_login(&mut self) {
-        // Validate input
-        if self.login_email.is_empty() {
-            self.login_error = Some("请输入邮箱地址".to_string());
+        self.login_error = None;
+
+        if self.login_email.trim().is_empty() {
+            self.login_error = Some("Please enter an email address".to_string());
             return;
         }
-
         if self.login_password.is_empty() {
-            self.login_error = Some("请输入密码".to_string());
+            self.login_error = Some("Please enter a password".to_string());
             return;
         }
 
-        // Create login request
-        #[cfg(not(target_arch = "wasm32"))]
         let login_request = LoginRequest {
-            email: self.login_email.clone(),
+            email: self.login_email.trim().to_string(),
             password: self.login_password.clone(),
             remember_me: self.login_remember_me,
         };
 
-        // Use database authentication if available
-        #[cfg(not(target_arch = "wasm32"))]
-        if let Some(auth_manager) = &self.auth_manager {
-            // Create a new runtime for database operations
-            #[cfg(not(target_arch = "wasm32"))]
-            let rt = tokio::runtime::Runtime::new().unwrap();
-            #[cfg(not(target_arch = "wasm32"))]
-            match rt.block_on(auth_manager.login(login_request)) {
-                Ok(user) => {
-                    // Store also in global session manager for cross-UI persistence
-                    let session_id = {
-                        let mut global = GLOBAL_SESSION_MANAGER.lock().unwrap();
-                        global.create_session(user.clone(), self.login_remember_me)
-                    };
-                    // Mirror to local manager for immediate access
-                    self.current_session_id = Some(session_id.clone());
-                    self.session_manager
-                        .create_session(user.clone(), self.login_remember_me);
-                    if self.login_remember_me {
-                        set_remembered_session(Some(session_id.clone()));
-                    } else {
-                        set_remembered_session(None);
-                    }
+        match self.auth_manager.login(login_request) {
+            Ok(user) => {
+                let local_session_id = self
+                    .session_manager
+                    .create_session(user.clone(), self.login_remember_me);
+                self.current_session_id = Some(local_session_id);
 
-                    self.auth_state = AuthState::LoggedIn(user);
-                    self.clear_login_form();
-                    self.login_error = None;
+                let remembered_session_id = if self.login_remember_me {
+                    GLOBAL_SESSION_MANAGER
+                        .lock()
+                        .ok()
+                        .map(|mut global| global.create_session(user.clone(), true))
+                } else {
+                    None
+                };
+
+                if self.login_remember_me {
+                    set_remembered_session(remembered_session_id);
+                } else {
+                    set_remembered_session(None);
                 }
-                Err(e) => {
-                    self.login_error = Some(match e {
-                        crate::auth::AuthError::InvalidCredentials => "邮箱或密码错误".to_string(),
-                        crate::auth::AuthError::UserAlreadyExists => "用户已存在".to_string(),
-                        crate::auth::AuthError::SessionExpired => "会话已过期".to_string(),
-                        crate::auth::AuthError::Unauthorized => "未授权访问".to_string(),
-                        crate::auth::AuthError::PasswordValidation(msg) => {
-                            format!("密码验证失败: {}", msg)
-                        }
-                        crate::auth::AuthError::Database(_) => "数据库错误".to_string(),
-                    });
-                }
+
+                self.auth_state = AuthState::LoggedIn(user);
+                self.clear_login_form();
             }
-        } else {
-            self.login_error = Some("数据库连接不可用".to_string());
+            Err(e) => {
+                self.login_error = Some(match e {
+                    crate::auth::AuthError::InvalidCredentials => {
+                        "Invalid email or password".to_string()
+                    }
+                    crate::auth::AuthError::UserAlreadyExists => "User already exists".to_string(),
+                    crate::auth::AuthError::SessionExpired => "Session expired".to_string(),
+                    crate::auth::AuthError::Unauthorized => "Unauthorized access".to_string(),
+                    crate::auth::AuthError::PasswordValidation(msg) => msg,
+                    crate::auth::AuthError::Database(err) => format!("Auth error: {err}"),
+                });
+            }
         }
     }
 
-    /// Handle registration attempt
     fn handle_register(&mut self) {
+        self.register_error = None;
+
         let register_request = RegisterRequest {
-            username: self.register_username.clone(),
-            email: self.register_email.clone(),
+            username: self.register_username.trim().to_string(),
+            email: self.register_email.trim().to_string(),
             password: self.register_password.clone(),
             password_confirm: self.register_password_confirm.clone(),
         };
 
-        // Validate registration (basic UI checks)
-        if let Err(error) = register_request.validate() {
-            self.register_error = Some(error);
-            return;
-        }
-
         if !validate_email(&register_request.email) {
-            self.register_error = Some("邮箱格式不正确".to_string());
+            self.register_error = Some("Invalid email format".to_string());
             return;
         }
 
-        // Use database authentication if available (native only)
-        #[cfg(not(target_arch = "wasm32"))]
-        if let Some(auth_manager) = &self.auth_manager {
-            // Create a new runtime for database operations
-            #[cfg(not(target_arch = "wasm32"))]
-            let rt = tokio::runtime::Runtime::new().unwrap();
-            #[cfg(not(target_arch = "wasm32"))]
-            match rt.block_on(auth_manager.register(register_request)) {
-                Ok(user) => {
-                    let session_id = {
-                        let mut global = GLOBAL_SESSION_MANAGER.lock().unwrap();
-                        global.create_session(user.clone(), false)
-                    };
-                    self.current_session_id = Some(session_id.clone());
-                    self.session_manager.create_session(user.clone(), false);
-                    set_remembered_session(Some(session_id.clone()));
-
-                    self.auth_state = AuthState::LoggedIn(user);
-                    self.clear_register_form();
-                    self.register_error = None;
-                }
-                Err(e) => {
-                    let msg = match e {
-                        crate::auth::AuthError::InvalidCredentials => "无效凭据".to_string(),
-                        crate::auth::AuthError::UserAlreadyExists => "用户已存在".to_string(),
-                        crate::auth::AuthError::SessionExpired => "会话已过期".to_string(),
-                        crate::auth::AuthError::Unauthorized => "未授权访问".to_string(),
-                        crate::auth::AuthError::PasswordValidation(msg) => {
-                            format!("密码验证失败: {}", msg)
-                        }
-                        crate::auth::AuthError::Database(_) => "数据库错误".to_string(),
-                    };
-                    self.register_error = Some(msg);
-                }
+        match self.auth_manager.register(register_request) {
+            Ok(user) => {
+                let local_session_id = self.session_manager.create_session(user.clone(), true);
+                self.current_session_id = Some(local_session_id);
+                let remembered_session_id = GLOBAL_SESSION_MANAGER
+                    .lock()
+                    .ok()
+                    .map(|mut global| global.create_session(user.clone(), true));
+                set_remembered_session(remembered_session_id);
+                self.auth_state = AuthState::LoggedIn(user);
+                self.clear_register_form();
             }
-        } else {
-            self.register_error = Some("数据库连接不可用".to_string());
+            Err(e) => {
+                self.register_error = Some(match e {
+                    crate::auth::AuthError::InvalidCredentials => "Invalid credentials".to_string(),
+                    crate::auth::AuthError::UserAlreadyExists => "User already exists".to_string(),
+                    crate::auth::AuthError::SessionExpired => "Session expired".to_string(),
+                    crate::auth::AuthError::Unauthorized => "Unauthorized access".to_string(),
+                    crate::auth::AuthError::PasswordValidation(msg) => msg,
+                    crate::auth::AuthError::Database(err) => format!("Auth error: {err}"),
+                });
+            }
         }
     }
 
-    /// Handle logout
     pub fn handle_logout(&mut self) {
         if let Some(session_id) = &self.current_session_id {
             let _ = self.session_manager.remove_session(session_id);
-            let _ = GLOBAL_SESSION_MANAGER.lock().map(|mut g| {
-                g.remove_session(session_id);
-            });
+            if let Ok(mut g) = GLOBAL_SESSION_MANAGER.lock() {
+                let _ = g.remove_session(session_id);
+            }
         }
 
         self.current_session_id = None;
         self.auth_state = AuthState::LoggedOut;
-        self.clear_all_forms();
         self.show_auth_window = false;
+        set_remembered_session(None);
     }
 
-    /// Get current logged in user
     pub fn get_current_user(&mut self) -> Option<&User> {
         if let Some(session_id) = &self.current_session_id {
             self.session_manager.validate_session(session_id)
         } else if let Some(session_id) = get_remembered_session() {
-            // Try global session manager, then mirror into local manager to return a stable reference
-            if let Ok(mut global) = GLOBAL_SESSION_MANAGER.lock() {
-                if let Some(user) = global.validate_session(&session_id) {
-                    let new_id = self.session_manager.create_session(user.clone(), true);
-                    self.current_session_id = Some(new_id);
-                    return self
-                        .session_manager
-                        .validate_session(self.current_session_id.as_deref().unwrap());
-                }
+            if let Ok(mut global) = GLOBAL_SESSION_MANAGER.lock()
+                && let Some(user) = global.validate_session(&session_id)
+            {
+                let new_id = self.session_manager.create_session(user.clone(), true);
+                self.current_session_id = Some(new_id);
+                return self
+                    .session_manager
+                    .validate_session(self.current_session_id.as_deref().unwrap());
             }
             None
         } else {
@@ -643,48 +344,35 @@ impl AuthUI {
         }
     }
 
-    /// Check if user is logged in
-    pub fn is_logged_in(&self) -> bool {
-        matches!(self.auth_state, AuthState::LoggedIn(_))
+    pub fn is_logged_in(&mut self) -> bool {
+        self.get_current_user().is_some()
     }
 
-    /// Open the authentication window
     pub fn open_auth_window(&mut self) {
         self.show_auth_window = true;
-        if self.get_current_user().is_some() {
-            if let Some(id) = &self.current_session_id {
-                if let Some(user) = self.session_manager.get_session(id).map(|s| s.user.clone()) {
-                    self.auth_state = AuthState::LoggedIn(user);
-                }
-            }
+        if let Some(user) = self.get_current_user().cloned() {
+            self.auth_state = AuthState::LoggedIn(user);
         } else {
             self.auth_state = AuthState::LoggedOut;
         }
     }
 
-    /// Close the authentication window
-    pub fn close_auth_window(&mut self) {
-        self.show_auth_window = false;
-    }
-
     fn try_restore_session(&mut self) {
-        if let Some(session_id) = get_remembered_session() {
-            if let Ok(mut global) = GLOBAL_SESSION_MANAGER.lock() {
-                if let Some(user) = global.validate_session(&session_id) {
-                    // Mirror into local manager so references are stable within UI
-                    let new_id = self.session_manager.create_session(user.clone(), true);
-                    self.current_session_id = Some(new_id);
-                    self.auth_state = AuthState::LoggedIn(user.clone());
-                }
-            }
+        if let Some(session_id) = get_remembered_session()
+            && let Ok(mut global) = GLOBAL_SESSION_MANAGER.lock()
+            && let Some(user) = global.validate_session(&session_id).cloned()
+        {
+            self.current_session_id = Some(self.session_manager.create_session(user.clone(), true));
+            self.auth_state = AuthState::LoggedIn(user);
+            self.show_auth_window = false;
         }
     }
 
-    // Helper methods for form management
     fn clear_login_form(&mut self) {
         self.login_email.clear();
         self.login_password.clear();
         self.login_remember_me = false;
+        self.login_error = None;
     }
 
     fn clear_register_form(&mut self) {
@@ -692,17 +380,11 @@ impl AuthUI {
         self.register_email.clear();
         self.register_password.clear();
         self.register_password_confirm.clear();
-    }
-
-    fn clear_all_forms(&mut self) {
-        self.clear_login_form();
-        self.clear_register_form();
+        self.register_error = None;
     }
 
     fn clear_form_errors(&mut self) {
         self.login_error = None;
         self.register_error = None;
     }
-
-    // Simulation methods removed (UserService is used instead)
 }
